@@ -1,14 +1,14 @@
-# BookMyShow Clone (React + Node + Prisma + PostgreSQL)
+# FLIM_FLEX (React + Node + PostgreSQL)
 
 Monorepo with:
 - Frontend: React (Vite) + Tailwind CSS
 - Backend: Node.js + Express
-- DB: PostgreSQL via Prisma
+- DB: PostgreSQL 
 - Auth: JWT (Bearer token)
 
 ## Structure
 - `/client` React + Tailwind
-- `/server` Express + Prisma
+- `/server` Express 
 
 ## Prerequisites
 - Node 18+
