@@ -1,8 +1,5 @@
--- =========================
--- FLIM_FLEX: final schema
--- =========================
 
--- === Enums (safe create) ===
+
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM ('customer', 'admin', 'super_admin');
 EXCEPTION WHEN duplicate_object THEN NULL;
@@ -19,9 +16,9 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 
--- =========================
+
 -- Users
--- =========================
+
 CREATE TABLE IF NOT EXISTS users (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -36,9 +33,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 
--- =========================
+
 -- Movies
--- =========================
+
 CREATE TABLE IF NOT EXISTS movies (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
@@ -50,9 +47,9 @@ CREATE TABLE IF NOT EXISTS movies (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================
+
 -- Theaters and Halls
--- =========================
+
 CREATE TABLE IF NOT EXISTS theaters (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -73,9 +70,9 @@ CREATE TABLE IF NOT EXISTS halls (
 );
 
 
--- =========================
+
 -- Shows
--- =========================
+
 CREATE TABLE IF NOT EXISTS shows (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     movie_id INT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
@@ -90,9 +87,9 @@ CREATE TABLE IF NOT EXISTS shows (
 CREATE INDEX IF NOT EXISTS idx_shows_show_time ON shows(show_time);
 
 
--- =========================
+
 -- Seats (belong to halls)
--- =========================
+
 CREATE TABLE IF NOT EXISTS seats (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     hall_id INT NOT NULL REFERENCES halls(id) ON DELETE CASCADE,
@@ -105,9 +102,9 @@ CREATE TABLE IF NOT EXISTS seats (
 
 
 
--- =========================
+
 -- Prices (per show + seat_type)
--- =========================
+
 CREATE TABLE IF NOT EXISTS prices (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     show_id INT NOT NULL REFERENCES shows(id) ON DELETE CASCADE,
@@ -120,9 +117,9 @@ CREATE TABLE IF NOT EXISTS prices (
 );
 
 
--- =========================
+
 -- Bookings and Booking Seats
--- =========================
+
 CREATE TABLE IF NOT EXISTS bookings (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE SET NULL,
@@ -151,6 +148,3 @@ CREATE INDEX IF NOT EXISTS idx_booking_seats_show ON booking_seats(show_id);
 
 
 
--- =========================
--- End of schema
--- =========================

@@ -6,12 +6,12 @@ const router = express.Router();
 
 
 // Customer registration
-router.post("/register", registerCustomer);
+router.post("/register", registerCustomerController);
 
 // Admin registration (requires adminKey)
-router.post("/register-admin", registerAdmin);
+router.post("/register-admin", registerAdminController);
 
 // Login (works for all roles)
-router.post("/login", login);
+router.post("/login", loginController);
 
 export default router;

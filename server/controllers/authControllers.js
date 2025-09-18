@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 
@@ -14,7 +14,7 @@ const generateToken = (user) => {
 
 // Register Customer
 
-export const registerCustomer = async (req, res) => {
+export const registerCustomerController = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -45,7 +45,7 @@ export const registerCustomer = async (req, res) => {
 
 // Register Theater Admin
 
-export const registerAdmin = async (req, res) => {
+export const registerAdminController = async (req, res) => {
   try {
     const { name, email, password, adminKey } = req.body;
 
@@ -80,7 +80,7 @@ export const registerAdmin = async (req, res) => {
 
 // Login
 
-export const login = async (req, res) => {
+export const loginController = async (req, res) => {
   try {
     const { email, password } = req.body;
 
