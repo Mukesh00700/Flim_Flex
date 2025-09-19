@@ -96,7 +96,7 @@ export const loginController = async (req, res) => {
 
     const token = generateToken(user);
 
-    res.json({
+    res.status(201).json({
       token,
       user: {
         id: user.id,

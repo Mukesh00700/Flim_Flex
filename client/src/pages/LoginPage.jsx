@@ -1,7 +1,34 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const LoginPage = () => {
+  const [email,setEmail] = useState("");
+  const [password,setPassword] = useState("");
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e)=>{
+    e.preventDefault();
+    setError("");
+    try{
+      const res = await axios.post("http://localhost:3000/auth/login",{
+        email,
+        password
+      });
+      if(res.status === 201){
+        navigate("/")
+      }
+    }catch(error){
+      if (error.response) {
+          // This is your backend’s error message
+          console.error("Backend error:", error.response.data.msg);
+          alert(error.response.data.msg); // show it in UI
+        } else {
+          console.error("Something went wrong:", error.message);
+        }
+    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-6">
       <div className="bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
@@ -12,13 +39,16 @@ const LoginPage = () => {
           <p className="text-gray-300">Sign in to your FilmFlex account</p>
         </div>
         
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Email Address</label>
             <input 
               type="email" 
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
-              placeholder="Enter your email" 
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
           
@@ -28,6 +58,9 @@ const LoginPage = () => {
               type="password" 
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
               placeholder="Enter your password" 
+              value={password}
+              onChange={(e)=> setPassword(e.target.value)}
+              required
             />
           </div>
           
