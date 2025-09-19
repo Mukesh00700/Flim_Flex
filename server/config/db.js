@@ -15,7 +15,6 @@ pool.query('SELECT NOW()', (err, res) => {
   } else {
     console.log('Connection successful! Time:', res.rows[0].now);
   }
-  pool.end();
 });
 
 export default pool;

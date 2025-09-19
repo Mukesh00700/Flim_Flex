@@ -1,10 +1,12 @@
 // routes/authRoutes.js
 import express from "express";
-import { registerCustomer,registerAdmin,login } from "../controllers/authController.js";
+import { registerCustomerController,registerAdminController,loginController } from "../controllers/authControllers.js";
 
 const router = express.Router();
 
-
+router.get("/test", (req, res) => {
+    res.send("Auth test route is working!");
+});
 // Customer registration
 router.post("/register", registerCustomerController);
 

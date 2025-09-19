@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
-
+import dotenv from "dotenv";
+dotenv.config();
 // Helper: Generate JWT
 const generateToken = (user) => {
   return jwt.sign(
@@ -16,8 +17,9 @@ const generateToken = (user) => {
 
 export const registerCustomerController = async (req, res) => {
   try {
+    if(!req.body) return res.status(400).json({msg:"All fields are required"});
     const { name, email, password } = req.body;
-
+    if(!name || !email || !password) return res.status(400).json({msg:"Must fill all the fields"});
     // check duplicate email
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
@@ -33,7 +35,7 @@ export const registerCustomerController = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    const token = generateToken(newUser.rows[0]);
+    const token = generateToken({id:newUser.rows[0],role:'customer'});
 
     res.status(201).json({ token, user: newUser.rows[0] });
   } catch (err) {
@@ -50,6 +52,7 @@ export const registerAdminController = async (req, res) => {
     const { name, email, password, adminKey } = req.body;
 
     // optional: require a secret key for admin registration
+    console.log(adminKey,process.env.ADMIN_SECRET);
     if (adminKey !== process.env.ADMIN_SECRET) {
       return res.status(403).json({ msg: "Unauthorized to register as admin" });
     }
