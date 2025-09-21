@@ -1,8 +1,10 @@
+import { useState } from "react";
 import Sidebar from "../components/AdminSidebar";
 import AdminNavbar from "../components/AdminNavbar";
-import { useState } from "react";
+import { Menu } from "lucide-react";
 
 export default function BookingsPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -72,15 +74,40 @@ export default function BookingsPage() {
   return (
     <div className="flex min-h-screen bg-slate-900 text-gray-100">
       {/* Sidebar */}
-      <Sidebar />
+      <div
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-slate-800 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar />
+      </div>
+
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Navbar */}
-        <AdminNavbar title="Manage Bookings" />
+      <div className="flex flex-col flex-1 min-h-screen bg-slate-900">
+        {/* Mobile Navbar with Sidebar Toggle */}
+        <div className="flex items-center justify-between lg:hidden bg-slate-800 px-4 py-3 shadow">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-gray-200 hover:text-white"
+          >
+            <Menu size={24} />
+          </button>
+          <span className="font-semibold">Manage Bookings</span>
+        </div>
+
+        {/* Desktop Navbar */}
+        <AdminNavbar title="Manage Bookings" className="hidden lg:block" />
 
         {/* Page Content */}
-        <main className="flex-1 py-8 px-6 overflow-y-auto">
+        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto">
           {/* Filters */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold">Bookings</h2>
@@ -128,7 +155,7 @@ export default function BookingsPage() {
           {/* Bookings Table */}
           <div className="bg-slate-800 rounded-xl shadow overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[800px]">
                 <thead className="bg-slate-700 text-gray-300">
                   <tr>
                     <th className="p-4 font-medium">Booking ID</th>
@@ -181,7 +208,7 @@ export default function BookingsPage() {
         </main>
 
         {/* Footer */}
-        <footer className="bg-slate-800 text-gray-400 text-center py-4">
+        <footer className="bg-slate-800 text-gray-400 text-center py-4 text-sm">
           © 2025 Film Flex Admin Portal
         </footer>
       </div>
