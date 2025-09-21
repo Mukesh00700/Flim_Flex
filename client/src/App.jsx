@@ -7,7 +7,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import MoviesPage from "./pages/MoviesPage";
 import BookingsPage from "./pages/BookingsPage";
 import UserPage from "./pages/UserPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
+
 const App = () => {
   return (
     <Router>
@@ -19,7 +19,9 @@ const App = () => {
       <Route path="/movies" element={<MoviesPage/>}/>
       <Route path="/bookings" element={<BookingsPage/>}/>
       <Route path="/user" element={<UserPage/>}/>
-   <Route path="/analytics" element={<AnalyticsPage/>}/>
+   
+    
+    
       </Routes>
     </Router>
   );
