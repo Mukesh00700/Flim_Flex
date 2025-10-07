@@ -8,7 +8,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import MoviesPage from "./pages/MoviesPage";
 import BookingsPage from "./pages/BookingsPage";
 import UserPage from "./pages/UserPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
+
 import LoginPageAdmin from "./pages/LoginPageAdmin";
 
 const App = () => {
@@ -25,6 +25,14 @@ const App = () => {
         <Route path="/bookings" element={<BookingsPage/>}/>
         <Route path="/user" element={<UserPage/>}/>
         <Route path="/analytics" element={<AnalyticsPage/>}/>
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/admin" element={<AdminDashboard/>}/>
+      <Route path="/movies" element={<MoviesPage/>}/>
+      <Route path="/bookings" element={<BookingsPage/>}/>
+      <Route path="/user" element={<UserPage/>}/>
+   
+    
+    
       </Routes>
     </Router>
   );
