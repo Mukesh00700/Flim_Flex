@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const LoginPage = () => {
+const LoginPageAdmin = () => {
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
+  const [adminSecretKey, setAdminSecretKey] = useState("");
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
@@ -14,16 +15,17 @@ const LoginPage = () => {
     try{
       const res = await axios.post("http://localhost:3000/auth/login",{
         email,
-        password
+        password,
+        adminSecretKey
       });
       if(res.status === 201){
         localStorage.setItem("token", res.data.token);
-        navigate("/userDashboard")
+        navigate("/adminDashboard")
       }
     }catch(error){
       if (error.response) {
           console.error("Backend error:", error.response.data.msg);
-          alert(error.response.data.msg); 
+          alert(error.response.data.msg);  
         } else {
           console.error("Something went wrong:", error.message);
         }
@@ -63,6 +65,17 @@ const LoginPage = () => {
               required
             />
           </div>
+          <div>
+            <label className="block text-gray-300 mb-2 font-medium">Admin Secret Key</label>
+            <input 
+              type="password" 
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+              placeholder="Enter your password" 
+              value={adminSecretKey}
+              onChange={(e)=> setAdminSecretKey(e.target.value)}
+              required
+            />
+          </div>
           
           <div className="flex justify-between items-center">
             <div className="flex items-center">
@@ -98,4 +111,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default LoginPageAdmin;

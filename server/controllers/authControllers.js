@@ -6,7 +6,7 @@ dotenv.config();
 // Helper: Generate JWT
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, role: user.role },
+    { id: user.id, role: user.role,name:user.name },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -49,11 +49,11 @@ export const registerCustomerController = async (req, res) => {
 
 export const registerAdminController = async (req, res) => {
   try {
-    const { name, email, password, adminKey } = req.body;
+    const { name, email, password, adminSecretKey } = req.body;
 
     // optional: require a secret key for admin registration
-    console.log(adminKey,process.env.ADMIN_SECRET);
-    if (adminKey !== process.env.ADMIN_SECRET) {
+    console.log(adminSecretKey,process.env.ADMIN_SECRET);
+    if (adminSecretKey !== process.env.ADMIN_SECRET) {
       return res.status(403).json({ msg: "Unauthorized to register as admin" });
     }
 

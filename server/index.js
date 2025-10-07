@@ -1,6 +1,7 @@
 import express from 'express';
 import pool from './config/db.js';
 import authRoutes from "./routes/authRoutes.js";
+import theaterRoutes from "./routes/theaterRoutes.js";
 
 import cors from "cors";
 
@@ -21,6 +22,12 @@ app.get('/test-db', async (req, res) => {
 try{
     console.log("loading auth route");
     app.use("/auth", authRoutes);
+}catch(e){
+    console.log("Couldn't connect to auth route");
+}
+try{
+    console.log("loading theater route");
+    app.use("/theater", theaterRoutes);
 }catch(e){
     console.log("Couldn't connect to auth route");
 }

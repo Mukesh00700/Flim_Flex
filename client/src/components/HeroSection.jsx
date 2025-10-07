@@ -16,7 +16,7 @@ const HeroSection = () => {
           <button className="bg-blue-600 hover:bg-blue-700 px-10 py-4 rounded-full text-xl font-semibold transition-all transform hover:scale-105 shadow-lg">
             Browse Movies
           </button>
-          <Link to="/register" className="border-2 border-blue-400 hover:bg-blue-600 hover:border-blue-600 px-10 py-4 rounded-full text-xl font-semibold transition-all">
+          <Link to="/registerUser" className="border-2 border-blue-400 hover:bg-blue-600 hover:border-blue-600 px-10 py-4 rounded-full text-xl font-semibold transition-all">
             Sign Up
           </Link>
         </div>
