@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Home, Film, Users, Calendar, BarChart3, LogOut, Menu } from "lucide-react";
+import {
+  Home,
+  Film,
+  Users,
+  Calendar,
+  BarChart3,
+  LogOut,
+  Menu,
+  Clock,
+  Ticket,
+} from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 export default function AdminSidebar() {
@@ -9,9 +19,11 @@ export default function AdminSidebar() {
   const links = [
     { to: "/admin", label: "Dashboard", icon: <Home /> },
     { to: "/movies", label: "Movies", icon: <Film /> },
-    { to: "/user", label: "Users", icon: <Users /> }, // you can create UsersPage later
+    { to: "/user", label: "Users", icon: <Users /> },
     { to: "/bookings", label: "Bookings", icon: <Calendar /> },
-    { to: "/analytics", label: "Analytics", icon: <BarChart3 /> }, // create AnalyticsPage later
+  
+    
+     
   ];
 
   return (
