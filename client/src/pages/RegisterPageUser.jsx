@@ -1,4 +1,4 @@
-
+import { GoogleLogin } from "@react-oauth/google";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -40,6 +40,18 @@ const RegisterPageUser = () => {
         }
     }
   };
+    const handleGoogleSignIn = async (credentialResponse) => {
+    const token = credentialResponse.credential;
+    try {
+      const res = await axios.post("http://localhost:3000/auth/google", { token });
+      console.log("Backend response:", res.data);
+      // console.log(res.data.user.completeProfile);
+        localStorage.setItem("token", res.data.token);
+        navigate("/user");
+    } catch (err) {
+      console.error(err.response?.data || err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-6">
@@ -54,7 +66,12 @@ const RegisterPageUser = () => {
         {error && (
           <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">{error}</p>
         )}
-
+        <div className="mb-4 flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSignIn}
+              onError={() => console.log("Login Failed")}
+            />
+        </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Full Name</label>

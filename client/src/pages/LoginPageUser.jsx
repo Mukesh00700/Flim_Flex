@@ -1,13 +1,25 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { GoogleLogin } from "@react-oauth/google";
 
 const LoginPageUser = () => {
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const navigate = useNavigate();
   const [error, setError] = useState("");
-
+  const [loading, setLoading] = useState(false);
+  const handleGoogleSignIn = async (credentialResponse) => {
+    const token = credentialResponse.credential;
+    try {
+      const res = await axios.post("http://localhost:3000/auth/google", { token });
+      console.log("Backend response:", res.data);
+      localStorage.setItem("token", res.data.token);
+      navigate("/user"); 
+    } catch (err) {
+      console.error(err.response?.data || err);
+    }
+  };
   const handleSubmit = async (e)=>{
     e.preventDefault();
     setError("");
@@ -38,7 +50,16 @@ const LoginPageUser = () => {
           </h2>
           <p className="text-gray-300">Sign in to your FilmFlex account</p>
         </div>
-        
+        {error && (
+          <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">{error}</p>
+        )}
+        <div className="mb-4 flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSignIn}
+              onError={() => console.log("Login Failed")}
+            />
+        </div>
+
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Email Address</label>
@@ -82,7 +103,7 @@ const LoginPageUser = () => {
         <div className="mt-8 text-center">
           <p className="text-gray-300">
             Don't have an account?{' '}
-            <Link to="/register" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
+            <Link to="/registerUser" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
               Create Account
             </Link>
           </p>

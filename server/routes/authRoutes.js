@@ -1,6 +1,6 @@
 // routes/authRoutes.js
 import express from "express";
-import { registerCustomerController,registerAdminController,loginController } from "../controllers/authControllers.js";
+import { registerCustomerController,registerAdminController,loginController,googleAuth } from "../controllers/authControllers.js";
 
 const router = express.Router();
 
@@ -15,5 +15,6 @@ router.post("/register-admin", registerAdminController);
 
 // Login (works for all roles)
 router.post("/login", loginController);
+router.post("/google",googleAuth)
 
 export default router;
