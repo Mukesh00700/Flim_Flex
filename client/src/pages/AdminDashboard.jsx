@@ -1,52 +1,41 @@
 import { useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import AdminNavbar from "../components/AdminNavbar";
-import AdminMain from "../components/AdminMain";
-import { Menu } from "lucide-react";
+
+// Import your page components here
+import AdminMain from "../components/AdminMain"; // The main dashboard view
+import MoviesPage from "./MoviesPage"; 
+import UserPage from "./UserPage";
+import BookingsPage from "./BookingsPage"
+// import TheatersPage from "./TheatersPage";
+// import ShowsPage from "./ShowsPage";
+// import BookingsPage from "./BookingsPage";
+// import UsersPage from "./UsersPage";
 
 export default function AdminDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Centralized state for the sidebar (open/closed)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex min-h-screen bg-slate-900 text-gray-100">
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-slate-800 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <AdminSidebar />
-      </div>
+      <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen">
-        {/* Navbar with Sidebar Toggle on Mobile */}
-        <div className="flex items-center justify-between lg:hidden bg-slate-800 px-4 py-3 shadow">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-gray-200 hover:text-white"
-          >
-            <Menu size={24} />
-          </button>
-          <span className="font-semibold">Dashboard</span>
-        </div>
-
-        <AdminNavbar title="Dashboard" className="hidden lg:block" />
-
-        {/* Page Content */}
+        <AdminNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        
         <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto">
-          <AdminMain />
+          {/* Router outlet for rendering different admin pages */}
+          <Routes>
+            <Route path="/" element={<AdminMain />} />
+            <Route path="/movies" element={<MoviesPage />} />
+            <Route path="/users" element={<UserPage />} />
+            <Route path="/bookings" element={<BookingsPage />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
         </main>
-
-        {/* Footer */}
+        
         <footer className="bg-slate-800 text-gray-400 text-center py-4 text-sm">
           © 2025 Film Flex Admin Portal
         </footer>

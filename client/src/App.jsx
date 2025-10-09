@@ -5,9 +5,7 @@ import RegisterPageUser from "./pages/RegisterPageUser";
 import RegisterPageAdmin from "./pages/RegisterPageAdmin";
 import HomePage from "./pages/HomePage";
 import AdminDashboard from "./pages/AdminDashboard";
-import MoviesPage from "./pages/MoviesPage";
-import BookingsPage from "./pages/BookingsPage";
-import UserPage from "./pages/UserPage";
+import TestPage from "./pages/TestPage";
 
 import LoginPageAdmin from "./pages/LoginPageAdmin";
 
@@ -20,14 +18,9 @@ const App = () => {
         <Route path="/loginAdmin" element={<LoginPageAdmin />} />
         <Route path="/registerUser" element={<RegisterPageUser />} />
         <Route path="/registerAdmin" element={<RegisterPageAdmin />} />
-        <Route path="/adminDashboard" element={<AdminDashboard/>}/>
-        <Route path="/movies" element={<MoviesPage/>}/>
-        <Route path="/bookings" element={<BookingsPage/>}/>
-        <Route path="/user" element={<UserPage/>}/>
+        <Route path="/admin/*" element={<AdminDashboard/>}/>
+        <Route path="/Test" element={<TestPage/>}/>
         {/* <Route path="/analytics" element={<AnalyticsPage/>}/> */}
-        <Route path="/admin" element={<AdminDashboard/>}/>
-        <Route path="/movies" element={<MoviesPage/>}/>
-        <Route path="/bookings" element={<BookingsPage/>}/>
       </Routes>
     </Router>
   );

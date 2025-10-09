@@ -30,7 +30,7 @@ const LoginPageUser = () => {
       });
       if(res.status === 201){
         localStorage.setItem("token", res.data.token);
-        navigate("/userDashboard")
+        navigate("/user")
       }
     }catch(error){
       if (error.response) {

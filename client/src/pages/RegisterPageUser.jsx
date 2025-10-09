@@ -28,7 +28,7 @@ const RegisterPageUser = () => {
       });
 
       if (res.status === 201) {
-        navigate("/"); 
+        navigate("/user"); 
       }
     } catch (error) {
         if (error.response) {

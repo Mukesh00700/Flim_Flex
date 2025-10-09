@@ -1,216 +1,152 @@
-import { useState } from "react";
-import Sidebar from "../components/AdminSidebar";
-import AdminNavbar from "../components/AdminNavbar";
-import { Menu } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
 
 export default function BookingsPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [bookings, setBookings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  // Sample booking data
-  const [bookings] = useState([
-    {
-      id: "BK001",
-      customer: "Rajesh Kumar",
-      movie: "Jawan",
-      showtime: "15 Sep 2023, 6:30 PM",
-      seats: "A1, A2, A3",
-      total: 1200,
-      status: "confirmed",
-    },
-    {
-      id: "BK002",
-      customer: "Priya Sharma",
-      movie: "Kalki 2898 AD",
-      showtime: "20 Sep 2024, 8:00 PM",
-      seats: "B4, B5",
-      total: 800,
-      status: "confirmed",
-    },
-    {
-      id: "BK003",
-      customer: "Vikram Singh",
-      movie: "Pathaan",
-      showtime: "16 Sep 2023, 3:00 PM",
-      seats: "C7, C8",
-      total: 800,
-      status: "cancelled",
-    },
-    {
-      id: "BK004",
-      customer: "Ananya Patel",
-      movie: "Kalki 2898 AD",
-      showtime: "21 Sep 2024, 9:30 PM",
-      seats: "D2, D3, D4",
-      total: 1200,
-      status: "pending",
-    },
-  ]);
-
-  // Filter bookings
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesStatus = selectedStatus === "all" || booking.status === selectedStatus;
-    const matchesSearch =
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.movie.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "confirmed":
-        return "bg-green-100 text-green-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  // Fetch bookings from the new API endpoint
+  const fetchBookings = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('token');
+      const query = new URLSearchParams({ search: searchTerm, status: statusFilter }).toString();
+      const response = await fetch(`/api/bookings/my-theater?${query}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setBookings(data);
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Re-fetch when filters change
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => fetchBookings(), 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, statusFilter]);
+
+  // Handle cancelling a booking
+  const handleCancelBooking = async (bookingId) => {
+    if (window.confirm("Are you sure you want to cancel this booking?")) {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`/api/bookings/${bookingId}/status`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+        fetchBookings(); // Refresh the list
+      } catch (error) {
+        alert("Failed to cancel booking.");
+      }
+    }
+  };
+
+  const getStatusClass = (status) => {
+    // Matches your schema's ENUM
+    const statusClasses = {
+      paid: "bg-green-500/20 text-green-300",
+      pending: "bg-yellow-500/20 text-yellow-300",
+      failed: "bg-red-500/20 text-red-300",
+      cancelled: "bg-gray-500/20 text-gray-300",
+      refunded: "bg-blue-500/20 text-blue-300",
+    };
+    return statusClasses[status] || "bg-gray-500/20 text-gray-300";
+  };
+
   return (
-    <div className="flex min-h-screen bg-slate-900 text-gray-100">
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-slate-800 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <Sidebar />
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Booking Management</h1>
+
+      {/* Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-slate-800 rounded-xl">
+        <div className="relative flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search ID, Customer, or Movie..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 pl-10 rounded-lg bg-slate-700 border border-slate-600"
+          />
+        </div>
+        <div className="relative">
+           <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full sm:w-auto p-2 pl-10 rounded-lg bg-slate-700 border border-slate-600 appearance-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
       </div>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex flex-col flex-1 min-h-screen bg-slate-900">
-        {/* Mobile Navbar with Sidebar Toggle */}
-        <div className="flex items-center justify-between lg:hidden bg-slate-800 px-4 py-3 shadow">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-gray-200 hover:text-white"
-          >
-            <Menu size={24} />
-          </button>
-          <span className="font-semibold">Manage Bookings</span>
-        </div>
-
-        {/* Desktop Navbar */}
-        <AdminNavbar title="Manage Bookings" className="hidden lg:block" />
-
-        {/* Page Content */}
-        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8 overflow-y-auto">
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <h2 className="text-2xl font-bold">Bookings</h2>
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search */}
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search bookings..."
-                  className="pl-10 pr-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              {/* Status Filter */}
-              <select
-                className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                <option value="all">All Status</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Bookings Table */}
-          <div className="bg-slate-800 rounded-xl shadow overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
-                <thead className="bg-slate-700 text-gray-300">
-                  <tr>
-                    <th className="p-4 font-medium">Booking ID</th>
-                    <th className="p-4 font-medium">Customer</th>
-                    <th className="p-4 font-medium">Movie</th>
-                    <th className="p-4 font-medium">Showtime</th>
-                    <th className="p-4 font-medium">Seats</th>
-                    <th className="p-4 font-medium">Total</th>
-                    <th className="p-4 font-medium">Status</th>
-                    <th className="p-4 font-medium">Actions</th>
+      {/* Bookings Table */}
+      <div className="bg-slate-800 rounded-xl shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
+            <thead className="bg-slate-700/50">
+              <tr>
+                <th className="p-4">Booking ID</th>
+                <th className="p-4">Customer</th>
+                <th className="p-4">Movie</th>
+                <th className="p-4">Showtime</th>
+                <th className="p-4">Seats</th>
+                <th className="p-4">Total</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan="8" className="text-center p-8 text-gray-400">Loading bookings...</td></tr>
+              ) : bookings.length === 0 ? (
+                <tr><td colSpan="8" className="text-center p-8 text-gray-400">No bookings found.</td></tr>
+              ) : (
+                bookings.map((booking) => (
+                  <tr key={booking.booking_id} className="border-b border-slate-700 hover:bg-slate-700/50">
+                    <td className="p-4 font-mono text-sm">{booking.booking_id}</td>
+                    <td className="p-4">{booking.customer_name}</td>
+                    <td className="p-4">{booking.movie_title}</td>
+                    <td className="p-4 text-gray-300">{new Date(booking.show_time).toLocaleString()}</td>
+                    <td className="p-4 text-gray-300">{booking.seats}</td>
+                    <td className="p-4">₹{booking.total_amount}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${getStatusClass(booking.payment_status)}`}>
+                        {booking.payment_status}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <button 
+                        onClick={() => handleCancelBooking(booking.booking_id)} 
+                        className="text-red-400 hover:text-red-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        disabled={booking.payment_status === 'cancelled' || booking.payment_status === 'refunded'}
+                        title="Cancel Booking"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredBookings.map((booking) => (
-                    <tr
-                      key={booking.id}
-                      className="border-b border-slate-700 hover:bg-slate-700"
-                    >
-                      <td className="p-4 font-mono">{booking.id}</td>
-                      <td className="p-4">{booking.customer}</td>
-                      <td className="p-4">{booking.movie}</td>
-                      <td className="p-4">{booking.showtime}</td>
-                      <td className="p-4">{booking.seats}</td>
-                      <td className="p-4">₹{booking.total}</td>
-                      <td className="p-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(
-                            booking.status
-                          )}`}
-                        >
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <button className="text-blue-400 hover:text-blue-300">
-                            View
-                          </button>
-                          <button className="text-red-400 hover:text-red-300">
-                            Cancel
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </main>
-
-        {/* Footer */}
-        <footer className="bg-slate-800 text-gray-400 text-center py-4 text-sm">
-          © 2025 Film Flex Admin Portal
-        </footer>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
