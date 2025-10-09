@@ -4,43 +4,40 @@ import axios from "axios";
 import { GoogleLogin } from "@react-oauth/google";
 
 const LoginPageUser = () => {
-  const [email,setEmail] = useState("");
-  const [password,setPassword] = useState("");
-  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
   const handleGoogleSignIn = async (credentialResponse) => {
     const token = credentialResponse.credential;
     try {
       const res = await axios.post("http://localhost:3000/auth/google", { token });
-      console.log("Backend response:", res.data);
       localStorage.setItem("token", res.data.token);
-      navigate("/user"); 
+      navigate("/customer"); // Redirect to CustomerPage
     } catch (err) {
       console.error(err.response?.data || err);
+      setError("Google Sign-In failed. Try again.");
     }
   };
-  const handleSubmit = async (e)=>{
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    try{
-      const res = await axios.post("http://localhost:3000/auth/login",{
+    try {
+      const res = await axios.post("http://localhost:3000/auth/login", {
         email,
-        password
+        password,
       });
-      if(res.status === 201){
+      if (res.status === 201) {
         localStorage.setItem("token", res.data.token);
         navigate("/user")
       }
-    }catch(error){
-      if (error.response) {
-          console.error("Backend error:", error.response.data.msg);
-          alert(error.response.data.msg); 
-        } else {
-          console.error("Something went wrong:", error.message);
-        }
+    } catch (err) {
+      setError(err.response?.data?.msg || "Login failed. Try again.");
     }
-  }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-6">
       <div className="bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
@@ -50,41 +47,60 @@ const LoginPageUser = () => {
           </h2>
           <p className="text-gray-300">Sign in to your FilmFlex account</p>
         </div>
+
         {error && (
           <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">{error}</p>
         )}
-        <div className="mb-4 flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSignIn}
-              onError={() => console.log("Login Failed")}
-            />
+
+        {/* Custom Google Sign-In Button */}
+        <div className="mb-6">
+          <GoogleLogin
+            onSuccess={handleGoogleSignIn}
+            onError={() => setError("Google Sign-In failed.")}
+            useOneTap
+            render={(renderProps) => (
+              <button
+                onClick={renderProps.onClick}
+                disabled={renderProps.disabled}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                Sign in with Google
+              </button>
+            )}
+          />
         </div>
 
+        {/* Email/Password Login Form */}
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Email Address</label>
-            <input 
-              type="email" 
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+            <input
+              type="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </div>
-          
+
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Password</label>
-            <input 
-              type="password" 
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
-              placeholder="Enter your password" 
+            <input
+              type="password"
+              placeholder="Enter your password"
               value={password}
-              onChange={(e)=> setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </div>
-          
+
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <input type="checkbox" className="mr-2 rounded" />
@@ -94,23 +110,32 @@ const LoginPageUser = () => {
               Forgot Password?
             </a>
           </div>
-          
-          <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105">
+
+          <button
+            type="submit"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105"
+          >
             Sign In
           </button>
         </form>
-        
+
         <div className="mt-8 text-center">
           <p className="text-gray-300">
-            Don't have an account?{' '}
-            <Link to="/registerUser" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
+            Don't have an account?{" "}
+            <Link
+              to="/registerUser"
+              className="text-purple-400 hover:text-purple-300 font-semibold transition-colors"
+            >
               Create Account
             </Link>
           </p>
         </div>
-        
+
         <div className="mt-6 text-center">
-          <Link to="/" className="text-gray-400 hover:text-gray-300 text-sm transition-colors">
+          <Link
+            to="/"
+            className="text-gray-400 hover:text-gray-300 text-sm transition-colors"
+          >
             ← Back to Home
           </Link>
         </div>
