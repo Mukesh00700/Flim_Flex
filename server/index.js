@@ -3,6 +3,7 @@ import pool from './config/db.js';
 import authRoutes from "./routes/authRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import movieRoutes from "./routes/movieRoutes.js"
+import userRoutes from "./routes/userRoutes.js"
 import cors from "cors";
 
 const app = express();
@@ -34,6 +35,12 @@ try{
 try{
     console.log("loading movies route");
     app.use("/movies", movieRoutes);
+}catch(e){
+    console.log("Couldn't connect to auth route");
+}
+try{
+    console.log("loading user route");
+    app.use("/user", userRoutes);
 }catch(e){
     console.log("Couldn't connect to auth route");
 }

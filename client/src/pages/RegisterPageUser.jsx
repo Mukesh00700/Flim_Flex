@@ -28,6 +28,7 @@ const RegisterPageUser = () => {
       });
 
       if (res.status === 201) {
+        localStorage.setItem("token", res.data.token);
         navigate("/customer"); 
       }
     } catch (error) {
@@ -45,7 +46,8 @@ const RegisterPageUser = () => {
     try {
       const res = await axios.post("http://localhost:3000/auth/google", { token });
       localStorage.setItem("token", res.data.token);
-      navigate("/user");
+      console.log("token is ",token);
+      navigate("/customer");
     } catch (err) {
       console.error(err.response?.data || err);
       setError("Google Sign-In failed. Try again.");
@@ -66,7 +68,7 @@ const RegisterPageUser = () => {
           <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">{error}</p>
         )}
 
-        {/* Styled Google Sign-In Button */}
+        
         <div className="mb-6">
           <GoogleLogin
             onSuccess={handleGoogleSignIn}

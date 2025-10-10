@@ -15,7 +15,7 @@ export const authenticate = async (req, res, next) => {
     // Fetch latest user details (important for role-based logic)
     const result = await pool.query(
       "SELECT id, email, role FROM users WHERE id = $1",
-      [decoded.id]
+      [decoded.id.id]
     );
 
     if (result.rowCount === 0) {
@@ -29,7 +29,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-// ✅ Authorize middleware (use after authenticate)
+
 export const authorize = (...allowedRoles) => {
   return (req, res, next) => {
     if (!allowedRoles.includes(req.user.role)) {
@@ -48,7 +48,7 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   const decoded = jwt.verify(token, JWT_SECRET);
-
+  console.log(decoded);
   const result = await pool.query(
     "SELECT id, name, email, role FROM users WHERE id = $1",
     [decoded.id]
@@ -67,7 +67,7 @@ export const admin = (req, res, next) => {
   if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
     next();
   } else {
-    res.status(403); // Forbidden
+    res.status(403); 
     throw new Error("Not authorized as an admin");
   }
 };

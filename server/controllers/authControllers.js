@@ -36,7 +36,7 @@ export const registerCustomerController = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    const token = generateToken({id:newUser.rows[0],role:'customer'});
+    const token = generateToken({id:newUser.rows[0].id,role:'customer'});
 
     return res.status(201).json({ token, user: newUser.rows[0] });
   } catch (err) {
@@ -52,7 +52,7 @@ export const registerAdminController = async (req, res) => {
   try {
     const { name, email, password, adminSecretKey } = req.body;
 
-    // optional: require a secret key for admin registration
+    
     console.log(adminSecretKey,process.env.ADMIN_SECRET);
     if (adminSecretKey !== process.env.ADMIN_SECRET) {
       return res.status(403).json({ msg: "Unauthorized to register as admin" });
@@ -72,7 +72,7 @@ export const registerAdminController = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    const token = generateToken(newAdmin.rows[0]);
+    const token = generateToken(newAdmin.rows[0].id);
 
     res.status(201).json({ token, user: newAdmin.rows[0] });
   } catch (err) {
@@ -157,7 +157,7 @@ export const googleAuth = async (req, res) => {
         // 4. Generate your application's own JWT
         const appToken = generateToken({
             id: userForToken.id,
-            role: userForToken.role
+            role: "customer"
         });
 
         // 5. Send the response

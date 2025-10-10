@@ -11,7 +11,7 @@ import RegisterPageAdmin from "./pages/RegisterPageAdmin";
 import TestPage from "./pages/TestPage";
 import MoviesPage from "./pages/MoviesPage";
 import BookingsPage from "./pages/BookingsPage";
-// import AdminDashboard from "./pages/AdminDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import UserPage from "./pages/UserPage";
 import CustomerPage from "./pages/CustomerPage";
 import CustomerProfilePage from "./pages/CustomerProfilePage";
