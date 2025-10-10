@@ -3,18 +3,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AdminSidebar from "../components/AdminSidebar";
 import AdminNavbar from "../components/AdminNavbar";
 
-// Import your page components here
-import AdminMain from "../components/AdminMain"; // The main dashboard view
+
+import AdminMain from "../components/AdminMain"; 
 import MoviesPage from "./MoviesPage"; 
 import UserPage from "./UserPage";
 import BookingsPage from "./BookingsPage"
-// import TheatersPage from "./TheatersPage";
-// import ShowsPage from "./ShowsPage";
-// import BookingsPage from "./BookingsPage";
-// import UsersPage from "./UsersPage";
 
 export default function AdminDashboard() {
-  // Centralized state for the sidebar (open/closed)
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (

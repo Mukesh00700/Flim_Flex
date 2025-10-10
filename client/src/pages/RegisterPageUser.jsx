@@ -28,7 +28,7 @@ const RegisterPageUser = () => {
       });
 
       if (res.status === 201) {
-        navigate("/user"); 
+        navigate("/customer"); 
       }
     } catch (error) {
         if (error.response) {
@@ -47,7 +47,7 @@ const RegisterPageUser = () => {
       console.log("Backend response:", res.data);
       // console.log(res.data.user.completeProfile);
         localStorage.setItem("token", res.data.token);
-        navigate("/user");
+        navigate("/customer");
     } catch (err) {
       console.error(err.response?.data || err);
     }

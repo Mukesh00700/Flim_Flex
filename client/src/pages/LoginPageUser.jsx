@@ -31,7 +31,7 @@ const LoginPageUser = () => {
       });
       if (res.status === 201) {
         localStorage.setItem("token", res.data.token);
-        navigate("/user")
+        navigate("/customer")
       }
     } catch (err) {
       setError(err.response?.data?.msg || "Login failed. Try again.");

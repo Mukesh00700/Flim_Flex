@@ -12,7 +12,10 @@ const CustomerProfilePage = () => {
   });
 
   const [isEditing, setIsEditing] = useState(false);
-
+  const userFetching = async()=>{
+    const token = localStorage.getItem("token");
+    
+  }
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;

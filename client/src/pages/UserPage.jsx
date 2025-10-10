@@ -5,11 +5,10 @@ export default function UserPage() {
   const [recentCustomers, setRecentCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch the 10 most recent customers for the logged-in admin's theater
   const fetchRecentCustomers = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token'); // Assumes token is stored in localStorage
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/users/recent-by-theater', {
         headers: {
           'Authorization': `Bearer ${token}`
