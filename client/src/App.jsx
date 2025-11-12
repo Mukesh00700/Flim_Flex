@@ -17,6 +17,7 @@ import CustomerPage from "./pages/CustomerPage";
 import CustomerProfilePage from "./pages/CustomerProfilePage";
 import CustomerBookingsPage from "./pages/CustomerBookingsPage";
 import CustomerBookingHistoryPage from "./pages/CustomerBookingHistoryPage";
+import PaymentPage from "./pages/PaymentPage";
 
 
 const App = () => {
@@ -32,6 +33,7 @@ const App = () => {
         <Route path="/Test" element={<TestPage/>}/>
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
+  <Route path="/payment" element={<PaymentPage />} />
 
         <Route path="/user" element={<UserPage />} />
         <Route path="/customer" element={<CustomerPage />}>
