@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { PlusCircle, Trash2, Edit2, Loader, Film } from "lucide-react";
 
-
 const initialFormState = {
   title: "",
   description: "",
   languages: "",
   genre: "",
   release_date: "",
-  poster_url: "",
+  poster_file: null,   // file upload
 };
 
 export default function MoviesPage() {
@@ -24,9 +23,13 @@ export default function MoviesPage() {
   const fetchMovies = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:3000/movies/getMovies');
+      const response = await fetch("http://localhost:3000/movies/getMovies", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const data = await response.json();
-      console.log(data);
       setMovies(data);
     } catch (error) {
       console.error("Failed to fetch movies:", error);
@@ -58,14 +61,18 @@ export default function MoviesPage() {
 
   const handleEditMovie = (movie) => {
     setEditingId(movie.id);
+
     setForm({
       title: movie.title,
       description: movie.description || "",
-      languages: Array.isArray(movie.languages) ? movie.languages.join(", ") : movie.languages || "",
+      languages: Array.isArray(movie.languages)
+        ? movie.languages.join(", ")
+        : movie.languages || "",
       genre: movie.genre,
       release_date: movie.release_date,
-      poster_url: movie.poster_url || ""
+      poster_file: null, // we'll upload a new file if chosen
     });
+
     setShowForm(true);
   };
 
@@ -74,27 +81,43 @@ export default function MoviesPage() {
       setError("Please fill all required fields.");
       return;
     }
-    
+
     try {
       setError("");
+
+      const languagesArray = form.languages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const formData = new FormData();
+      formData.append("title", form.title);
+      formData.append("description", form.description);
+      formData.append("genre", form.genre);
+      formData.append("release_date", form.release_date);
+      formData.append("languages", JSON.stringify(languagesArray));
+
+      if (form.poster_file) {
+        formData.append("poster", form.poster_file);
+      }
+
       const url = editingId
         ? `http://localhost:3000/movies/updateMovies/${editingId}`
-        : 'http://localhost:3000/movies/addMovies';
-      
-      const method = editingId ? 'PUT' : 'POST';
+        : "http://localhost:3000/movies/addMovies";
+
+      const method = editingId ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+        headers: {
+          Authorization: `Bearer ${token}`, // don't set content-type here
         },
-        body: JSON.stringify(form),
+        body: formData,
       });
-      
-      if (!response.ok) throw new Error('Failed to save movie');
-      
-      fetchMovies();
+
+      if (!response.ok) throw new Error("Failed to save movie");
+
+      await fetchMovies();
       resetForm();
     } catch (error) {
       console.error(error);
@@ -103,15 +126,25 @@ export default function MoviesPage() {
   };
 
   const deleteMovie = async (id) => {
-    if (window.confirm("Are you sure? This will delete the movie and all its shows.")) {
-      try {
-        const response = await fetch(`http://localhost:3000/movies/deleteMovies/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete');
-        setMovies(movies.filter((m) => m.id !== id));
-      } catch (error) {
-        console.error(error);
-        alert("Error: Could not delete the movie.");
-      }
+    if (!window.confirm("Are you sure? This will delete the movie and all its shows.")) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:3000/movies/deleteMovies/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Could not delete");
+
+      setMovies((prev) => prev.filter((m) => m.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert("Error: Could not delete the movie.");
     }
   };
 
@@ -122,7 +155,8 @@ export default function MoviesPage() {
           <Film size={32} className="text-blue-400" />
           Movie Management
         </h1>
-        <button 
+
+        <button
           onClick={handleAddMovie}
           className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white flex items-center gap-2 transition"
         >
@@ -145,64 +179,80 @@ export default function MoviesPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <input 
-                type="text" 
-                name="title" 
-                placeholder="Title *" 
-                value={form.title} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400" 
+              <input
+                type="text"
+                name="title"
+                placeholder="Title *"
+                value={form.title}
+                onChange={handleChange}
+                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
               />
-              <input 
-                type="text" 
-                name="genre" 
-                placeholder="Genre *" 
-                value={form.genre} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400" 
+
+              <input
+                type="text"
+                name="genre"
+                placeholder="Genre *"
+                value={form.genre}
+                onChange={handleChange}
+                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
               />
-              <input 
-                type="date" 
-                name="release_date" 
-                value={form.release_date} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400" 
+
+              <input
+                type="date"
+                name="release_date"
+                value={form.release_date}
+                onChange={handleChange}
+                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
               />
-              <input 
-                type="text" 
-                name="languages" 
-                placeholder="Languages (comma-separated) *" 
-                value={form.languages} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400" 
+
+              <input
+                type="text"
+                name="languages"
+                placeholder="Languages (comma-separated) *"
+                value={form.languages}
+                onChange={handleChange}
+                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
               />
-              <textarea 
-                name="description" 
-                placeholder="Description" 
-                value={form.description} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400 sm:col-span-2" 
-                rows="3" 
+
+              <textarea
+                name="description"
+                placeholder="Description"
+                value={form.description}
+                onChange={handleChange}
+                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white sm:col-span-2"
+                rows="3"
               />
-              <input 
-                type="text" 
-                name="poster_url" 
-                placeholder="Poster Image URL" 
-                value={form.poster_url} 
-                onChange={handleChange} 
-                className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400 sm:col-span-2" 
-              />
+
+              {/* Image Upload */}
+              <div className="sm:col-span-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    setForm((prev) => ({ ...prev, poster_file: file }));
+                  }}
+                  className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
+                />
+
+                {form.poster_file && (
+                  <p className="text-green-400 text-sm mt-1">
+                    Selected: {form.poster_file.name}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
-              <button 
-                onClick={addOrUpdateMovie} 
+              <button
+                onClick={addOrUpdateMovie}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg text-white transition"
               >
                 {editingId ? "Update Movie" : "Add Movie"}
               </button>
-              <button 
-                onClick={resetForm} 
+
+              <button
+                onClick={resetForm}
                 className="flex-1 bg-gray-600 hover:bg-gray-500 px-6 py-2 rounded-lg text-white transition"
               >
                 Cancel
@@ -223,36 +273,59 @@ export default function MoviesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {movies.map((m) => (
-              <div key={m.id} className="bg-slate-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition border border-slate-600">
-                <img 
-                  src={m.poster_url || 'https://via.placeholder.com/500x750.png?text=No+Poster'} 
-                  alt={m.title} 
-                  className="w-full h-48 object-cover" 
+              <div
+                key={m.id}
+                className="bg-slate-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition border border-slate-600"
+              >
+                <img
+                  src={
+                    m.poster_url ||
+                    "https://via.placeholder.com/500x750.png?text=No+Poster"
+                  }
+                  alt={m.title}
+                  className="w-full h-48 object-cover"
                 />
+
                 <div className="p-4">
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <h3 className="text-lg font-bold flex-1">{m.title}</h3>
+
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => handleEditMovie(m)}
-                        className="p-2 hover:bg-slate-600 rounded text-blue-400 transition" 
-                        title="Edit Movie"
+                        className="p-2 hover:bg-slate-600 rounded text-blue-400"
                       >
                         <Edit2 size={16} />
                       </button>
-                      <button 
-                        onClick={() => deleteMovie(m.id)} 
-                        className="p-2 hover:bg-slate-600 rounded text-red-400 transition"
-                        title="Delete Movie"
+
+                      <button
+                        onClick={() => deleteMovie(m.id)}
+                        className="p-2 hover:bg-slate-600 rounded text-red-400"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-300"><strong>Genre:</strong> {m.genre}</p>
-                  <p className="text-sm text-gray-300"><strong>Released:</strong> {new Date(m.release_date).toLocaleDateString()}</p>
-                  <p className="text-sm text-gray-300"><strong>Languages:</strong> {Array.isArray(m.languages) ? m.languages.join(', ') : m.languages || 'N/A'}</p>
-                  <p className="text-xs text-gray-400 mt-2">{m.description}</p>
+
+                  <p className="text-sm text-gray-300">
+                    <strong>Genre:</strong> {m.genre}
+                  </p>
+
+                  <p className="text-sm text-gray-300">
+                    <strong>Released:</strong>{" "}
+                    {new Date(m.release_date).toLocaleDateString()}
+                  </p>
+
+                  <p className="text-sm text-gray-300">
+                    <strong>Languages:</strong>{" "}
+                    {Array.isArray(m.languages)
+                      ? m.languages.join(", ")
+                      : m.languages || "N/A"}
+                  </p>
+
+                  <p className="text-xs text-gray-400 mt-2">
+                    {m.description}
+                  </p>
                 </div>
               </div>
             ))}
