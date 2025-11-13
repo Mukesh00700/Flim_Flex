@@ -15,6 +15,19 @@ const RegisterPageUser = () => {
     e.preventDefault();
     setError("");
 
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|yahoo\.com|outlook\.com|protonmail\.com)$/;
+
+    if (!emailRegex.test(email)) {
+      console.log(
+        "Invalid email address. Use a valid domain like Gmail, Hotmail, Yahoo, etc."
+      );
+      setError("invalid email");
+      return;
+    } else {
+      console.log("Valid email address!");
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -29,7 +42,10 @@ const RegisterPageUser = () => {
 
       if (res.status === 201) {
         localStorage.setItem("token", res.data.token);
-        navigate("/customer"); 
+        if (res.data.user) {
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+        }
+        navigate("/");
       }
     } catch (error) {
       if (error.response) {
@@ -44,10 +60,15 @@ const RegisterPageUser = () => {
   const handleGoogleSignIn = async (credentialResponse) => {
     const token = credentialResponse.credential;
     try {
-      const res = await axios.post("http://localhost:3000/auth/google", { token });
+      const res = await axios.post("http://localhost:3000/auth/google", {
+        token,
+      });
       localStorage.setItem("token", res.data.token);
-      console.log("token is ",token);
-      navigate("/customer");
+      if (res.data.user) {
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+      }
+      console.log("token is ", token);
+      navigate("/");
     } catch (err) {
       console.error(err.response?.data || err);
       setError("Google Sign-In failed. Try again.");
@@ -65,10 +86,11 @@ const RegisterPageUser = () => {
         </div>
 
         {error && (
-          <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">{error}</p>
+          <p className="bg-red-500 text-white text-sm p-2 rounded mb-4">
+            {error}
+          </p>
         )}
 
-        
         <div className="mb-6">
           <GoogleLogin
             onSuccess={handleGoogleSignIn}
@@ -93,7 +115,9 @@ const RegisterPageUser = () => {
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-gray-300 mb-2 font-medium">Full Name</label>
+            <label className="block text-gray-300 mb-2 font-medium">
+              Full Name
+            </label>
             <input
               type="text"
               value={fullName}
@@ -105,7 +129,9 @@ const RegisterPageUser = () => {
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2 font-medium">Email Address</label>
+            <label className="block text-gray-300 mb-2 font-medium">
+              Email Address
+            </label>
             <input
               type="email"
               value={email}
@@ -117,7 +143,9 @@ const RegisterPageUser = () => {
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2 font-medium">Password</label>
+            <label className="block text-gray-300 mb-2 font-medium">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -129,7 +157,9 @@ const RegisterPageUser = () => {
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2 font-medium">Confirm Password</label>
+            <label className="block text-gray-300 mb-2 font-medium">
+              Confirm Password
+            </label>
             <input
               type="password"
               value={confirmPassword}

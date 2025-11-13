@@ -23,11 +23,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
-    password VARCHAR(255), -- nullable for Google auth
+    password VARCHAR(255),
     google_id VARCHAR(255) UNIQUE,
     role user_role NOT NULL DEFAULT 'customer',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- require at least one auth method
     CHECK (password IS NOT NULL OR google_id IS NOT NULL)
 );
 

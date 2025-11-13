@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Home, Film, Users, Calendar, BarChart3, LogOut, Menu } from "lucide-react";
-
+import { Navigate } from "react-router-dom";
 export default function AdminSidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  const navigate = Navigate();
   return (
     <div
       className={`${
@@ -35,7 +35,10 @@ export default function AdminSidebar() {
         </a>
       </nav>
 
-      <button className="flex items-center gap-3 p-4 hover:bg-gray-700">
+      <button className="flex items-center gap-3 p-4 hover:bg-gray-700" onClick={()=>{
+        localStorage.removeItem("token");
+        navigate("/");
+      }}>
         <LogOut /> {sidebarOpen && "Logout"}
       </button>
     </div>

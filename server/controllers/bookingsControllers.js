@@ -1,15 +1,15 @@
 import pool from '../db.js';
 
-// Main function to get bookings for an admin
+
 export const getBookingsForAdmin = async (req, res) => {
-  const adminId = req.user.id; // From JWT auth middleware
+  const adminId = req.user.id;
   const { status = 'all', search = '' } = req.query;
 
   try {
     const values = [adminId];
     let paramIndex = 2;
     
-    // This complex query joins 6 tables to get all relevant data for each booking
+
     let query = `
       SELECT
         b.id AS booking_id, b.total_amount, b.payment_status, b.booking_time,
@@ -50,12 +50,11 @@ export const getBookingsForAdmin = async (req, res) => {
   }
 };
 
-// Function to update a booking's status
+
 export const updateBookingStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   
-  // Add validation for allowed statuses: 'cancelled', 'refunded'
   if (!['cancelled', 'refunded'].includes(status)) {
     return res.status(400).json({ msg: 'Invalid status update' });
   }

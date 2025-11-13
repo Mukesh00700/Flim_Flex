@@ -1,4 +1,4 @@
-import { Home, Film, Users, Calendar, Tv, Ticket, LogOut, Menu } from "lucide-react";
+import { Home, Film, Users, Calendar, Tv, Ticket, LogOut, Menu, DollarSign } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 export default function AdminSidebar({ sidebarOpen, setSidebarOpen }) {
@@ -9,6 +9,7 @@ export default function AdminSidebar({ sidebarOpen, setSidebarOpen }) {
     { to: "/admin/movies", label: "Movies", icon: <Film size={20} /> },
     { to: "/admin/theaters", label: "Theaters & Halls", icon: <Tv size={20} /> },
     { to: "/admin/shows", label: "Show Scheduler", icon: <Ticket size={20} /> },
+    { to: "/admin/pricing", label: "Pricing", icon: <DollarSign size={20} /> },
     { to: "/admin/bookings", label: "Bookings", icon: <Calendar size={20} /> },
     { to: "/admin/users", label: "Users", icon: <Users size={20} /> },
   ];

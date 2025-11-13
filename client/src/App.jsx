@@ -8,6 +8,7 @@ import RegisterPageUser from "./pages/RegisterPageUser";
 import RegisterPageAdmin from "./pages/RegisterPageAdmin";
 import TestPage from "./pages/TestPage";
 import MoviesPage from "./pages/MoviesPage";
+import MovieDetail from "./pages/MovieDetail";
 import BookingsPage from "./pages/BookingsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserPage from "./pages/UserPage";
@@ -15,6 +16,7 @@ import CustomerPage from "./pages/CustomerPage";
 import CustomerProfilePage from "./pages/CustomerProfilePage";
 import CustomerBookingsPage from "./pages/CustomerBookingsPage";
 import CustomerBookingHistoryPage from "./pages/CustomerBookingHistoryPage";
+import ShowPage from "./pages/ShowPage";
 
 
 import SeatsPage from "./pages/SeatsPage";
@@ -29,14 +31,15 @@ const App = () => {
         <Route path="/loginUser" element={<LoginPageUser />} />
         <Route path="/loginAdmin" element={<LoginPageAdmin />} />
         <Route path="/registerUser" element={<RegisterPageUser />} />
-        <Route path="/registerAdmin" element={<RegisterPageAdmin />} />
+  <Route path="/registerAdmin" element={<RegisterPageAdmin />} />
 
-        <Route path="/admin/*" element={<AdminDashboard />} />
-        <Route path="/user" element={<UserPage />} />
+  <Route path="/admin/*" element={<AdminDashboard />} />
+  <Route path="/user" element={<UserPage />} />
 
-        
-        <Route path="/test" element={<TestPage />} />
-        <Route path="/movies" element={<MoviesPage />} />
+  <Route path="/test" element={<TestPage />} />
+  <Route path="/movies" element={<MoviesPage />} />
+  <Route path="/movies/:movieId" element={<MovieDetail />} />
+  <Route path="/shows/:showId" element={<ShowPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
 
         {/* 👤 Customer routes */}

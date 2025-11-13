@@ -4,7 +4,7 @@ import pool from "../config/db.js";
 import dotenv from "dotenv";
 import { OAuth2Client } from 'google-auth-library';
 dotenv.config();
-// Helper: Generate JWT
+
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, role: user.role,name:user.name },
@@ -14,14 +14,13 @@ const generateToken = (user) => {
 };
 
 
-// Register Customer
+
 
 export const registerCustomerController = async (req, res) => {
   try {
     if(!req.body) return res.status(400).json({msg:"All fields are required"});
     const { name, email, password } = req.body;
     if(!name || !email || !password) return res.status(400).json({msg:"Must fill all the fields"});
-    // check duplicate email
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "Email already in use" });
@@ -46,7 +45,7 @@ export const registerCustomerController = async (req, res) => {
 };
 
 
-// Register Theater Admin
+
 
 export const registerAdminController = async (req, res) => {
   try {
@@ -82,7 +81,7 @@ export const registerAdminController = async (req, res) => {
 };
 
 
-// Login
+
 
 export const loginController = async (req, res) => {
   try {
@@ -121,7 +120,6 @@ export const googleAuth = async (req, res) => {
     const { token } = req.body;
 
     try {
-        // 1. Verify the Google ID token
         const ticket = await client.verifyIdToken({
             idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID,
@@ -129,7 +127,6 @@ export const googleAuth = async (req, res) => {
 
         const { sub, email, name, picture } = ticket.getPayload();
 
-        // 2. Check if the user already exists in your database
         const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         const existingUser = userQuery.rows[0];
 
@@ -137,12 +134,11 @@ export const googleAuth = async (req, res) => {
         let statusCode;
 
         if (existingUser) {
-            // 3a. If user exists, use their data
+
             console.log(`Existing user logged in: ${existingUser.email}`);
             userForToken = existingUser;
-            statusCode = 200; // OK
+            statusCode = 200; 
         } else {
-            // 3b. If user does not exist, create a new one
             console.log(`Creating new user for: ${email}`);
             const newUserQuery = await pool.query(
                 `INSERT INTO users (name, email, google_id, role)
@@ -151,16 +147,14 @@ export const googleAuth = async (req, res) => {
                 [name, email, sub]
             );
             userForToken = newUserQuery.rows[0];
-            statusCode = 201; // Created
+            statusCode = 201; 
         }
 
-        // 4. Generate your application's own JWT
         const appToken = generateToken({
             id: userForToken.id,
             role: "customer"
         });
 
-        // 5. Send the response
         return res.status(statusCode).json({
             token: appToken,
             user: userForToken

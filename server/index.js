@@ -4,6 +4,8 @@ import authRoutes from "./routes/authRoutes.js";
 import theaterRoutes from "./routes/theaterRoutes.js";
 import movieRoutes from "./routes/movieRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
+import ticketBookingRoutes from "./routes/ticketBookingRoutes.js";
+import priceRoutes from "./routes/priceRoutes.js";
 import cors from "cors";
 
 const app = express();
@@ -43,6 +45,18 @@ try{
     app.use("/user", userRoutes);
 }catch(e){
     console.log("Couldn't connect to auth route");
+}
+try{
+    console.log("loading ticket booking route");
+    app.use("/api/bookings", ticketBookingRoutes);
+}catch(e){
+    console.log("Couldn't connect to ticket booking route", e);
+}
+try{
+    console.log("loading price route");
+    app.use("/api/prices", priceRoutes);
+}catch(e){
+    console.log("Couldn't connect to price route", e);
 }
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

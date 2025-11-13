@@ -7,7 +7,6 @@ const router = express.Router();
 
 router.get('/my-theater', protect, admin, getBookingsForAdmin);
 
-// for cancellation/refund)\
 router.put('/:id/status', protect, admin, updateBookingStatus);
 
 export default router;

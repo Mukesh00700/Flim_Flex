@@ -12,9 +12,12 @@ const LoginPageUser = () => {
   const handleGoogleSignIn = async (credentialResponse) => {
     const token = credentialResponse.credential;
     try {
-      const res = await axios.post("http://localhost:3000/auth/google", { token });
-      localStorage.setItem("token", res.data.token);
-      navigate("/customer"); // Redirect to CustomerPage
+  const res = await axios.post("http://localhost:3000/auth/google", { token });
+  localStorage.setItem("token", res.data.token);
+  if (res.data.user) {
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+  }
+  navigate("/"); // Redirect to HomePage
     } catch (err) {
       console.error(err.response?.data || err);
       setError("Google Sign-In failed. Try again.");
@@ -31,7 +34,10 @@ const LoginPageUser = () => {
       });
       if (res.status === 201) {
         localStorage.setItem("token", res.data.token);
-        navigate("/customer")
+        if (res.data.user) {
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+        }
+        navigate("/")
       }
     } catch (err) {
       setError(err.response?.data?.msg || "Login failed. Try again.");
@@ -75,7 +81,7 @@ const LoginPageUser = () => {
           />
         </div>
 
-        {/* Email/Password Login Form */}
+        
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <label className="block text-gray-300 mb-2 font-medium">Email Address</label>
