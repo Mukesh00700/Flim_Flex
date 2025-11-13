@@ -68,7 +68,7 @@ export const registerAdminController = async (req, res) => {
       `INSERT INTO users (name, email, password, role)
        VALUES ($1, $2, $3, 'admin')
        RETURNING id, name, email, role`,
-      [name, email, hashedPassword]
+      [name, email, hashedPassword,admin]
     );
 
     const token = generateToken(newAdmin.rows[0]);
