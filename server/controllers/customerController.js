@@ -79,3 +79,41 @@ export const getRecentCustomersByTheater = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+export const getUserById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching user by id:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+export const updateUserRole = async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  if (!role) {
+    return res.status(400).json({ msg: 'Role is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, name, email, role, created_at',
+      [role, id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
