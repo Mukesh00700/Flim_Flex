@@ -15,7 +15,7 @@ export const authenticate = async (req, res, next) => {
     // Fetch latest user details (important for role-based logic)
     const result = await pool.query(
       "SELECT id, email, role FROM users WHERE id = $1",
-      [decoded.id.id]
+      [decoded.id]
     );
 
     if (result.rowCount === 0) {
