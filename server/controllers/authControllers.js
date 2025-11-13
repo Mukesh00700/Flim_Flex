@@ -35,7 +35,7 @@ export const registerCustomerController = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    const token = generateToken({id:newUser.rows[0].id,role:'customer'});
+    const token = generateToken(newUser.rows[0]);
 
     return res.status(201).json({ token, user: newUser.rows[0] });
   } catch (err) {
@@ -71,7 +71,7 @@ export const registerAdminController = async (req, res) => {
       [name, email, hashedPassword]
     );
 
-    const token = generateToken(newAdmin.rows[0].id);
+    const token = generateToken(newAdmin.rows[0]);
 
     res.status(201).json({ token, user: newAdmin.rows[0] });
   } catch (err) {
