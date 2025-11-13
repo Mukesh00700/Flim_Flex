@@ -95,7 +95,7 @@ const LoginPageAdmin = () => {
         <div className="mt-8 text-center">
           <p className="text-gray-300">
             Don't have an account?{' '}
-            <Link to="/register" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
+            <Link to="/registerAdmin" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
               Create Account
             </Link>
           </p>

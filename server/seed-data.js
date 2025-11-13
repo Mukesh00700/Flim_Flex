@@ -1,4 +1,5 @@
 import pool from './config/db.js';
+import bcrypt from 'bcrypt';
 
 async function seedData() {
   try {
@@ -8,12 +9,13 @@ async function seedData() {
     let adminUserId = 1;
     const userCheck = await pool.query('SELECT id FROM users LIMIT 1');
     if (userCheck.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash('admin@123', 10); // Seed password: admin@123
       const newUser = await pool.query(
         `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id`,
-        ['Admin User', 'admin@test.com', 'hashed_password', 'admin']
+        ['Admin User', 'admin@test.com', hashedPassword, 'admin']
       );
       adminUserId = newUser.rows[0].id;
-      console.log('✓ Created admin user:', adminUserId);
+      console.log('✓ Created admin user:', adminUserId, '(email: admin@test.com, password: admin@123)');
     } else {
       adminUserId = userCheck.rows[0].id;
       console.log('✓ Using existing admin user:', adminUserId);

@@ -31,26 +31,26 @@ const App = () => {
         <Route path="/loginUser" element={<LoginPageUser />} />
         <Route path="/loginAdmin" element={<LoginPageAdmin />} />
         <Route path="/registerUser" element={<RegisterPageUser />} />
-  <Route path="/registerAdmin" element={<RegisterPageAdmin />} />
+        <Route path="/registerAdmin" element={<RegisterPageAdmin />} />
 
-  <Route path="/admin/*" element={<AdminDashboard />} />
-  <Route path="/user" element={<UserPage />} />
+        <Route path="/admin/*" element={<AdminDashboard />} />
+        <Route path="/user" element={<UserPage />} />
 
-  <Route path="/test" element={<TestPage />} />
-  <Route path="/movies" element={<MoviesPage />} />
-  <Route path="/movies/:movieId" element={<MovieDetail />} />
-  <Route path="/shows/:showId" element={<ShowPage />} />
+        <Route path="/test" element={<TestPage />} />
+        <Route path="/movies" element={<MoviesPage />} />
+        <Route path="/movies/:movieId" element={<MovieDetail />} />
+        <Route path="/shows/:showId" element={<ShowPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
-  <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
 
         {/* 👤 Customer routes */}
-        <Route path="/customer" element={<CustomerPage />}>
+          <Route path="/customer" element={<CustomerPage />}>
           <Route index element={<Navigate to="profile" replace />} />
           <Route path="profile" element={<CustomerProfilePage />} />
           <Route path="bookings" element={<CustomerBookingsPage />} />
           <Route path="booking-history" element={<CustomerBookingHistoryPage />} />
-        </Route>
-        <Route path="/seats" element={<SeatsPage />} />
+          </Route>
+          <Route path="/seats" element={<SeatsPage />} />
 
        
         <Route path="*" element={<Navigate to="/" replace />} />

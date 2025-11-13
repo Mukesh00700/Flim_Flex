@@ -7,6 +7,17 @@ import userRoutes from "./routes/userRoutes.js"
 import bookingsRoutes from "./routes/bookingsRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import cors from "cors";
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ['JWT_SECRET'];
+const missingVars = requiredEnvVars.filter(env => !process.env[env]);
+if (missingVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());
