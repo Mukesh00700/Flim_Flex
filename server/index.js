@@ -6,6 +6,7 @@ import movieRoutes from "./routes/movieRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
 import bookingsRoutes from "./routes/bookingsRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
+import ticketBookingRoutes from "./routes/ticketBookingRoutes.js";
 import cors from "cors";
 import dotenv from 'dotenv';
 
@@ -68,6 +69,12 @@ try{
     app.use("/api/customers", customerRoutes);
 }catch(e){
     console.log("Couldn't connect to customer route", e);
+}
+try{
+    console.log("loading ticket booking route");
+    app.use("/api/bookings", ticketBookingRoutes);
+}catch(e){
+    console.log("Couldn't connect to ticket booking route", e);
 }
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

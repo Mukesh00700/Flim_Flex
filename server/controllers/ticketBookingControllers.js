@@ -1,4 +1,11 @@
 import pool from '../config/db.js';
+import { 
+  generateTicketId, 
+  generateTicketQRCode, 
+  generateVerificationCode,
+  generateTicketHTML 
+} from '../utils/ticketGenerator.js';
+import { sendTicketEmail } from '../config/nodemailer.js';
 
 
 export const getAvailableSeats = async (req, res) => {
@@ -211,11 +218,13 @@ export const createBooking = async (req, res) => {
     );
 
     // If payment details provided, update booking with payment reference
+    let isPaid = false;
     if (paymentDetails?.transactionId) {
       await client.query(
         `UPDATE bookings SET payment_reference = $1, payment_status = $2 WHERE id = $3`,
         [paymentDetails.transactionId, 'paid', bookingId]
       );
+      isPaid = true;
     }
 
     await client.query('COMMIT');
@@ -224,12 +233,14 @@ export const createBooking = async (req, res) => {
     const completeBooking = await pool.query(
       `SELECT 
         b.id, b.user_id, b.show_id, b.total_amount, b.payment_status, b.payment_reference, b.booking_time,
+        u.name as user_name, u.email as user_email,
         m.title as movie_title,
         s.show_time,
         h.name as hall_name,
         t.name as theater_name,
         string_agg(st.row_label || st.seat_number, ', ' ORDER BY st.row_label, st.seat_number) as seats
        FROM bookings b
+       JOIN users u ON b.user_id = u.id
        JOIN shows s ON b.show_id = s.id
        JOIN movies m ON s.movie_id = m.id
        JOIN halls h ON s.hall_id = h.id
@@ -237,23 +248,101 @@ export const createBooking = async (req, res) => {
        JOIN booking_seats bs ON b.id = bs.booking_id
        JOIN seats st ON bs.seat_id = st.id
        WHERE b.id = $1
-       GROUP BY b.id, b.user_id, b.show_id, b.total_amount, b.payment_status, b.payment_reference, b.booking_time, m.title, s.show_time, h.name, t.name`,
+       GROUP BY b.id, b.user_id, b.show_id, b.total_amount, b.payment_status, b.payment_reference, b.booking_time, u.name, u.email, m.title, s.show_time, h.name, t.name`,
       [bookingId]
     );
+
+    const bookingData = completeBooking.rows[0];
+
+    // Generate and send ticket if payment is successful
+    let ticketData = null;
+    if (isPaid) {
+      try {
+        // Generate ticket information
+        const ticketId = generateTicketId(bookingId);
+        const verificationCode = generateVerificationCode();
+        const seatsArray = bookingData.seats.split(', ');
+
+        // Prepare QR code data
+        const qrData = {
+          ticketId,
+          bookingId,
+          userId: bookingData.user_id,
+          showId: bookingData.show_id,
+          seats: seatsArray,
+          verificationCode
+        };
+
+        // Generate QR code
+        const qrCodeDataURL = await generateTicketQRCode(qrData);
+
+        // Store ticket in database
+        await pool.query(
+          `INSERT INTO tickets (ticket_id, booking_id, user_id, show_id, verification_code, qr_code_data)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [ticketId, bookingId, bookingData.user_id, bookingData.show_id, verificationCode, qrCodeDataURL]
+        );
+
+        // Prepare ticket data for email
+        const ticketEmailData = {
+          ticketId,
+          bookingId,
+          movieTitle: bookingData.movie_title,
+          theaterName: bookingData.theater_name,
+          hallName: bookingData.hall_name,
+          showTime: bookingData.show_time,
+          seats: seatsArray,
+          totalAmount: parseFloat(bookingData.total_amount),
+          verificationCode,
+          qrCode: qrCodeDataURL,
+          bookingTime: bookingData.booking_time
+        };
+
+        // Generate ticket HTML
+        const ticketHTML = generateTicketHTML(ticketEmailData);
+
+        // Send ticket email
+        await sendTicketEmail(
+          bookingData.user_email,
+          bookingData.user_name,
+          ticketHTML,
+          ticketId
+        );
+
+        // Update booking to mark ticket as sent
+        await pool.query(
+          `UPDATE bookings SET ticket_sent = true, ticket_sent_at = CURRENT_TIMESTAMP WHERE id = $1`,
+          [bookingId]
+        );
+
+        ticketData = {
+          ticketId,
+          verificationCode,
+          qrCode: qrCodeDataURL
+        };
+
+        console.log(`✅ Ticket generated and sent for booking #${bookingId}`);
+      } catch (ticketError) {
+        console.error('❌ Error generating/sending ticket:', ticketError);
+        // Don't fail the booking if ticket generation fails
+      }
+    }
 
     res.status(201).json({
       msg: 'Booking created successfully',
       booking: {
-        id: completeBooking.rows[0].id,
-        movieTitle: completeBooking.rows[0].movie_title,
-        theaterName: completeBooking.rows[0].theater_name,
-        hallName: completeBooking.rows[0].hall_name,
-        showTime: completeBooking.rows[0].show_time,
-        seats: completeBooking.rows[0].seats.split(', '),
-        totalAmount: parseFloat(completeBooking.rows[0].total_amount),
-        paymentStatus: completeBooking.rows[0].payment_status,
-        bookingTime: completeBooking.rows[0].booking_time
-      }
+        id: bookingData.id,
+        movieTitle: bookingData.movie_title,
+        theaterName: bookingData.theater_name,
+        hallName: bookingData.hall_name,
+        showTime: bookingData.show_time,
+        seats: bookingData.seats.split(', '),
+        totalAmount: parseFloat(bookingData.total_amount),
+        paymentStatus: bookingData.payment_status,
+        bookingTime: bookingData.booking_time,
+        ticketSent: isPaid
+      },
+      ticket: ticketData
     });
 
   } catch (error) {
@@ -673,6 +762,266 @@ export const getShowsByHall = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+// ============================================
+// TICKET MANAGEMENT ENDPOINTS
+// ============================================
+
+/**
+ * Get ticket by booking ID
+ */
+export const getTicketByBookingId = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    const ticketQuery = await pool.query(
+      `SELECT 
+        t.ticket_id, t.verification_code, t.qr_code_data, t.is_used, t.used_at, t.created_at,
+        b.id as booking_id, b.total_amount, b.payment_status, b.booking_time,
+        m.title as movie_title, m.poster_url,
+        s.show_time,
+        h.name as hall_name,
+        th.name as theater_name, th.address as theater_address,
+        string_agg(st.row_label || st.seat_number, ', ' ORDER BY st.row_label, st.seat_number) as seats
+       FROM tickets t
+       JOIN bookings b ON t.booking_id = b.id
+       JOIN shows s ON t.show_id = s.id
+       JOIN movies m ON s.movie_id = m.id
+       JOIN halls h ON s.hall_id = h.id
+       JOIN theaters th ON h.theater_id = th.id
+       JOIN booking_seats bs ON b.id = bs.booking_id
+       JOIN seats st ON bs.seat_id = st.id
+       WHERE t.booking_id = $1 AND b.user_id = $2
+       GROUP BY t.ticket_id, t.verification_code, t.qr_code_data, t.is_used, t.used_at, t.created_at,
+                b.id, b.total_amount, b.payment_status, b.booking_time,
+                m.title, m.poster_url, s.show_time, h.name, th.name, th.address`,
+      [bookingId, userId]
+    );
+
+    if (ticketQuery.rowCount === 0) {
+      return res.status(404).json({ msg: 'Ticket not found' });
+    }
+
+    const ticket = ticketQuery.rows[0];
+
+    res.json({
+      ticketId: ticket.ticket_id,
+      verificationCode: ticket.verification_code,
+      qrCode: ticket.qr_code_data,
+      isUsed: ticket.is_used,
+      usedAt: ticket.used_at,
+      booking: {
+        id: ticket.booking_id,
+        totalAmount: parseFloat(ticket.total_amount),
+        paymentStatus: ticket.payment_status,
+        bookingTime: ticket.booking_time
+      },
+      show: {
+        movieTitle: ticket.movie_title,
+        posterUrl: ticket.poster_url,
+        showTime: ticket.show_time,
+        hallName: ticket.hall_name,
+        theaterName: ticket.theater_name,
+        theaterAddress: ticket.theater_address,
+        seats: ticket.seats.split(', ')
+      },
+      createdAt: ticket.created_at
+    });
+  } catch (error) {
+    console.error('Error fetching ticket:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+/**
+ * Resend ticket email
+ */
+export const resendTicket = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    // Fetch booking and ticket details
+    const result = await pool.query(
+      `SELECT 
+        t.ticket_id, t.verification_code, t.qr_code_data,
+        b.id as booking_id, b.total_amount, b.booking_time,
+        u.name as user_name, u.email as user_email,
+        m.title as movie_title,
+        s.show_time,
+        h.name as hall_name,
+        th.name as theater_name,
+        string_agg(st.row_label || st.seat_number, ', ' ORDER BY st.row_label, st.seat_number) as seats
+       FROM tickets t
+       JOIN bookings b ON t.booking_id = b.id
+       JOIN users u ON b.user_id = u.id
+       JOIN shows s ON t.show_id = s.id
+       JOIN movies m ON s.movie_id = m.id
+       JOIN halls h ON s.hall_id = h.id
+       JOIN theaters th ON h.theater_id = th.id
+       JOIN booking_seats bs ON b.id = bs.booking_id
+       JOIN seats st ON bs.seat_id = st.id
+       WHERE t.booking_id = $1 AND b.user_id = $2
+       GROUP BY t.ticket_id, t.verification_code, t.qr_code_data,
+                b.id, b.total_amount, b.booking_time,
+                u.name, u.email, m.title, s.show_time, h.name, th.name`,
+      [bookingId, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ msg: 'Ticket not found' });
+    }
+
+    const data = result.rows[0];
+
+    // Prepare ticket data for email
+    const ticketEmailData = {
+      ticketId: data.ticket_id,
+      bookingId: data.booking_id,
+      movieTitle: data.movie_title,
+      theaterName: data.theater_name,
+      hallName: data.hall_name,
+      showTime: data.show_time,
+      seats: data.seats.split(', '),
+      totalAmount: parseFloat(data.total_amount),
+      verificationCode: data.verification_code,
+      qrCode: data.qr_code_data,
+      bookingTime: data.booking_time
+    };
+
+    // Generate ticket HTML
+    const ticketHTML = generateTicketHTML(ticketEmailData);
+
+    // Send ticket email
+    await sendTicketEmail(
+      data.user_email,
+      data.user_name,
+      ticketHTML,
+      data.ticket_id
+    );
+
+    res.json({ 
+      msg: 'Ticket email sent successfully',
+      success: true 
+    });
+  } catch (error) {
+    console.error('Error resending ticket:', error);
+    res.status(500).json({ msg: 'Failed to send ticket email' });
+  }
+};
+
+/**
+ * Verify ticket (for theater staff)
+ * Check if ticket is valid and mark as used
+ */
+export const verifyTicket = async (req, res) => {
+  try {
+    const { ticketId, verificationCode } = req.body;
+
+    if (!ticketId || !verificationCode) {
+      return res.status(400).json({ msg: 'Ticket ID and verification code are required' });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // Find ticket
+      const ticketQuery = await client.query(
+        `SELECT 
+          t.id, t.ticket_id, t.verification_code, t.is_used, t.used_at,
+          b.payment_status,
+          s.show_time,
+          m.title as movie_title,
+          h.name as hall_name,
+          th.name as theater_name,
+          string_agg(st.row_label || st.seat_number, ', ' ORDER BY st.row_label, st.seat_number) as seats
+         FROM tickets t
+         JOIN bookings b ON t.booking_id = b.id
+         JOIN shows s ON t.show_id = s.id
+         JOIN movies m ON s.movie_id = m.id
+         JOIN halls h ON s.hall_id = h.id
+         JOIN theaters th ON h.theater_id = th.id
+         JOIN booking_seats bs ON b.id = bs.booking_id
+         JOIN seats st ON bs.seat_id = st.id
+         WHERE t.ticket_id = $1
+         GROUP BY t.id, t.ticket_id, t.verification_code, t.is_used, t.used_at,
+                  b.payment_status, s.show_time, m.title, h.name, th.name
+         FOR UPDATE OF t`,
+        [ticketId]
+      );
+
+      if (ticketQuery.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ msg: 'Invalid ticket' });
+      }
+
+      const ticket = ticketQuery.rows[0];
+
+      // Verify code
+      if (ticket.verification_code !== verificationCode) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ msg: 'Invalid verification code' });
+      }
+
+      // Check if already used
+      if (ticket.is_used) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          msg: 'Ticket already used',
+          usedAt: ticket.used_at
+        });
+      }
+
+      // Check payment status
+      if (ticket.payment_status !== 'paid') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ msg: 'Payment not confirmed for this ticket' });
+      }
+
+      // Check if show time has passed (optional - you may want to allow some buffer)
+      const showTime = new Date(ticket.show_time);
+      const now = new Date();
+      if (now < showTime - 30 * 60 * 1000) { // 30 minutes before show
+        await client.query('ROLLBACK');
+        return res.status(400).json({ msg: 'Too early. Please arrive closer to show time.' });
+      }
+
+      // Mark ticket as used
+      await client.query(
+        `UPDATE tickets SET is_used = true, used_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [ticket.id]
+      );
+
+      await client.query('COMMIT');
+
+      res.json({
+        msg: 'Ticket verified successfully',
+        success: true,
+        ticket: {
+          ticketId: ticket.ticket_id,
+          movieTitle: ticket.movie_title,
+          theaterName: ticket.theater_name,
+          hallName: ticket.hall_name,
+          showTime: ticket.show_time,
+          seats: ticket.seats.split(', ')
+        }
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('Error verifying ticket:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 };
