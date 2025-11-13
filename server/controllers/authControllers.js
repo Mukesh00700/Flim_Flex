@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import dotenv from "dotenv";
 import { OAuth2Client } from 'google-auth-library';
+import crypto from 'crypto';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../config/nodemailer.js';
 dotenv.config();
 
 const generateToken = (user) => {
@@ -21,6 +23,7 @@ export const registerCustomerController = async (req, res) => {
     if(!req.body) return res.status(400).json({msg:"All fields are required"});
     const { name, email, password } = req.body;
     if(!name || !email || !password) return res.status(400).json({msg:"Must fill all the fields"});
+    
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "Email already in use" });
@@ -28,16 +31,33 @@ export const registerCustomerController = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const newUser = await pool.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, 'customer')
-       RETURNING id, name, email, role`,
-      [name, email, hashedPassword]
+      `INSERT INTO users (name, email, password, role, verification_token, verification_token_expires, is_verified)
+       VALUES ($1, $2, $3, 'customer', $4, $5, false)
+       RETURNING id, name, email, role, is_verified`,
+      [name, email, hashedPassword, verificationToken, verificationTokenExpires]
     );
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(email, name, verificationToken);
+      console.log(`✅ Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send verification email:', emailError);
+      // Continue registration even if email fails
+    }
 
     const token = generateToken(newUser.rows[0]);
 
-    return res.status(201).json({ token, user: newUser.rows[0] });
+    return res.status(201).json({ 
+      token, 
+      user: newUser.rows[0],
+      message: "Registration successful! Please check your email to verify your account."
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -94,15 +114,24 @@ export const loginController = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
+    // Check if email is verified
+    if (!user.is_verified) {
+      return res.status(403).json({ 
+        msg: "Please verify your email before logging in. Check your inbox for the verification link.",
+        isVerified: false
+      });
+    }
+
     const token = generateToken(user);
 
-    res.status(201).json({
+    res.status(200).json({
       token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
+        isVerified: user.is_verified,
       },
     });
   } catch (err) {
@@ -164,4 +193,194 @@ export const googleAuth = async (req, res) => {
         console.error(`Google authentication error: ${err}`);
         return res.status(500).json({ msg: "Google Authentication failed" });
     }
+};
+
+/**
+ * Verify Email
+ */
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ msg: "Verification token is required" });
+    }
+
+    // Find user with this verification token
+    const userQuery = await pool.query(
+      "SELECT * FROM users WHERE verification_token = $1",
+      [token]
+    );
+
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid verification token" });
+    }
+
+    // Check if token is expired
+    if (new Date() > new Date(user.verification_token_expires)) {
+      return res.status(400).json({ msg: "Verification token has expired. Please request a new one." });
+    }
+
+    // Check if already verified
+    if (user.is_verified) {
+      return res.status(200).json({ msg: "Email is already verified" });
+    }
+
+    // Update user as verified
+    await pool.query(
+      "UPDATE users SET is_verified = true, verification_token = NULL, verification_token_expires = NULL WHERE id = $1",
+      [user.id]
+    );
+
+    res.status(200).json({ 
+      msg: "Email verified successfully! You can now log in.",
+      success: true
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+/**
+ * Resend Verification Email
+ */
+export const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ msg: "Email is required" });
+    }
+
+    const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    if (user.is_verified) {
+      return res.status(400).json({ msg: "Email is already verified" });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Update user with new token
+    await pool.query(
+      "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE id = $3",
+      [verificationToken, verificationTokenExpires, user.id]
+    );
+
+    // Send verification email
+    await sendVerificationEmail(email, user.name, verificationToken);
+
+    res.status(200).json({ 
+      msg: "Verification email sent successfully! Please check your inbox.",
+      success: true
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+/**
+ * Request Password Reset
+ */
+export const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ msg: "Email is required" });
+    }
+
+    const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.status(200).json({ 
+        msg: "If an account exists with this email, a password reset link has been sent.",
+        success: true
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Update user with reset token
+    await pool.query(
+      "UPDATE users SET password_reset_token = $1, password_reset_token_expires = $2 WHERE id = $3",
+      [resetToken, resetTokenExpires, user.id]
+    );
+
+    // Send password reset email
+    await sendPasswordResetEmail(email, user.name, resetToken);
+
+    res.status(200).json({ 
+      msg: "If an account exists with this email, a password reset link has been sent.",
+      success: true
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ msg: "Token and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ msg: "Password must be at least 6 characters long" });
+    }
+
+    // Find user with this reset token
+    const userQuery = await pool.query(
+      "SELECT * FROM users WHERE password_reset_token = $1",
+      [token]
+    );
+
+    const user = userQuery.rows[0];
+
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid or expired reset token" });
+    }
+
+    // Check if token is expired
+    if (new Date() > new Date(user.password_reset_token_expires)) {
+      return res.status(400).json({ msg: "Reset token has expired. Please request a new one." });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    await pool.query(
+      "UPDATE users SET password = $1, password_reset_token = NULL, password_reset_token_expires = NULL WHERE id = $2",
+      [hashedPassword, user.id]
+    );
+
+    res.status(200).json({ 
+      msg: "Password reset successfully! You can now log in with your new password.",
+      success: true
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: "Server error" });
+  }
 };
