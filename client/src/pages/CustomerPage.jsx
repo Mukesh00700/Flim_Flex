@@ -13,7 +13,7 @@ const CustomerPage = () => {
   };
 
   const location = useLocation();
-  const path = location.pathname.toLowerCase(); // 👈 Convert to lowercase
+  const path = location.pathname.toLowerCase(); 
 
   return (
     <div className="flex min-h-screen bg-gradient-to-r from-purple-800 to-indigo-900 text-white">

@@ -11,9 +11,9 @@ const MovieCard = ({ movie }) => {
       <p className="text-yellow-400 mb-4">⭐ {movie.rating}</p>
       <div className="flex justify-between items-center">
         <span className="text-blue-400 font-semibold text-lg">{movie.price}</span>
-        <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white transition-colors">
+        <a href={`/movies/${movie.id}`} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white transition-colors">
           Book Now
-        </button>
+        </a>
       </div>
     </div>
   );

@@ -12,7 +12,7 @@ const CustomerChangePasswordPage = () => {
       return;
     }
     alert("Password changed successfully!");
-    // TODO: Integrate API call for changing password
+    
   };
 
   return (

@@ -7,7 +7,7 @@ export default function BookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Fetch bookings from the new API endpoint
+
   const fetchBookings = async () => {
     try {
       setIsLoading(true);
@@ -25,13 +25,12 @@ export default function BookingsPage() {
     }
   };
 
-  // Re-fetch when filters change
   useEffect(() => {
     const debounceTimer = setTimeout(() => fetchBookings(), 300);
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, statusFilter]);
 
-  // Handle cancelling a booking
+
   const handleCancelBooking = async (bookingId) => {
     if (window.confirm("Are you sure you want to cancel this booking?")) {
       try {
@@ -44,7 +43,7 @@ export default function BookingsPage() {
           },
           body: JSON.stringify({ status: 'cancelled' })
         });
-        fetchBookings(); // Refresh the list
+        fetchBookings(); 
       } catch (error) {
         alert("Failed to cancel booking.");
       }
@@ -52,7 +51,7 @@ export default function BookingsPage() {
   };
 
   const getStatusClass = (status) => {
-    // Matches your schema's ENUM
+  
     const statusClasses = {
       paid: "bg-green-500/20 text-green-300",
       pending: "bg-yellow-500/20 text-yellow-300",
@@ -67,7 +66,7 @@ export default function BookingsPage() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Booking Management</h1>
 
-      {/* Filter Controls */}
+      
       <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-slate-800 rounded-xl">
         <div className="relative flex-grow">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -96,7 +95,7 @@ export default function BookingsPage() {
         </div>
       </div>
 
-      {/* Bookings Table */}
+      
       <div className="bg-slate-800 rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">

@@ -1,15 +1,17 @@
 import express from 'express';
-import { getAllMovies, addMovie, deleteMovie } from '../controllers/movieController.js';
+import { getAllMovies, addMovie, deleteMovie, getRunningMovies, updateMovie } from '../controllers/movieController.js';
 
 const router = express.Router();
 
-// GET /api/movies -> Fetches all movies
+
 router.get('/getMovies', getAllMovies);
 
-// POST /api/movies -> Adds a new movie
+router.get('/getRunningMovies', getRunningMovies);
+
 router.post('/addMovies', addMovie);
 
-// DELETE /api/movies/:id -> Deletes a movie by its ID
+router.put('/updateMovies/:id', updateMovie);
+
 router.delete('/deleteMovies/:id', deleteMovie);
 
 export default router;
