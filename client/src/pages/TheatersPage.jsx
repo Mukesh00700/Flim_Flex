@@ -8,12 +8,10 @@ export default function TheatersPage() {
   const [error, setError] = useState("");
   const [expandedTheaterId, setExpandedTheaterId] = useState(null);
   
-  // Theater form state
   const [showTheaterForm, setShowTheaterForm] = useState(false);
   const [editingTheaterId, setEditingTheaterId] = useState(null);
   const [theaterForm, setTheaterForm] = useState({ name: "", city: "", address: "" });
   
-  // Hall form state
   const [showHallForm, setShowHallForm] = useState(false);
   const [selectedTheaterId, setSelectedTheaterId] = useState(null);
   const [hallForm, setHallForm] = useState({ name: "", capacity: "" });
@@ -21,27 +19,54 @@ export default function TheatersPage() {
   const token = localStorage.getItem("token");
 
   // Fetch theaters
-  const fetchTheaters = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch("http://localhost:3000/theaters/getTheaters", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch theaters");
-      const data = await response.json();
-      setTheaters(data);
-    } catch (err) {
-      setError(err.message || "Error fetching theaters");
-    } finally {
-      setLoading(false);
+const fetchTheaters = async () => {
+  try {
+    setLoading(true);
+    setError("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Missing auth token. Please login.");
+      return;
     }
-  };
+
+    const url = "http://localhost:3000/theater/getTheaters"; // use the exact path you said works in Postman
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    // Debugging helpers
+    console.log("fetchTheaters: status", res.status, res.statusText);
+    const text = await res.text(); // read raw body
+    console.log("fetchTheaters: raw response:", text.slice(0, 1000));
+
+    if (!res.ok) {
+      // Try parsing JSON body if possible
+      let body;
+      try { body = JSON.parse(text); } catch(e) { body = text; }
+      throw new Error(`Server ${res.status}: ${JSON.stringify(body)}`);
+    }
+
+    // If OK, parse as JSON
+    const data = JSON.parse(text);
+    setTheaters(data);
+  } catch (err) {
+    console.error("fetchTheaters error:", err);
+    setError(err.message || "Error fetching theaters");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch halls for a specific theater
   const fetchHalls = async (theaterId) => {
     try {
-      const response = await fetch(`http://localhost:3000/theaters/${theaterId}/halls`, {
+      const response = await fetch(`http://localhost:3000/theater/${theaterId}/halls`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch halls");
@@ -80,8 +105,8 @@ export default function TheatersPage() {
     try {
       const method = editingTheaterId ? "PUT" : "POST";
       const url = editingTheaterId
-        ? `http://localhost:3000/theaters/updateTheater/${editingTheaterId}`
-        : "http://localhost:3000/theaters/createTheater";
+        ? `http://localhost:3000/theater/updateTheater/${editingTheaterId}`
+        : "http://localhost:3000/theater/createTheater";
 
       const response = await fetch(url, {
         method,
@@ -109,7 +134,7 @@ export default function TheatersPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/theaters/deleteTheater/${theaterId}`, {
+      const response = await fetch(`http://localhost:3000/theater/deleteTheater/${theaterId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -148,7 +173,7 @@ export default function TheatersPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/theaters/${selectedTheaterId}/halls`, {
+      const response = await fetch(`http://localhost:3000/theater/${selectedTheaterId}/halls`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,7 +200,7 @@ export default function TheatersPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/theaters/halls/${hallId}`, {
+      const response = await fetch(`http://localhost:3000/theater/halls/${hallId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

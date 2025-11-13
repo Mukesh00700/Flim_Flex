@@ -24,7 +24,7 @@ const HomeMoviesGrid = ({ onSelectMovie, search = '' }) => {
         
         // Load shows (optional, for filtering)
         try {
-          const sRes = await fetch(`${baseURL}/api/bookings/shows/all?date=${date}`);
+          const sRes = await fetch(`${baseURL}/bookings/shows/all?date=${date}`);
           if (sRes.ok) {
             const showsData = await sRes.json();
             setShows(showsData.shows || []);

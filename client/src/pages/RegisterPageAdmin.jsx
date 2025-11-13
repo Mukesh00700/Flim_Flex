@@ -31,6 +31,7 @@ const RegisterPageAdmin = () => {
 
       if (res.status === 201) {
         localStorage.setItem("token", res.data.token);
+        console.log(res.data.token);
         navigate("/admin"); 
       }
     } catch (error) {

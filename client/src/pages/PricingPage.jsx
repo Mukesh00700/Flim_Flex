@@ -20,7 +20,7 @@ export default function PricingPage() {
     try {
       setLoading(true);
       setError("");
-      const response = await fetch("http://localhost:3000/api/prices/shows/list", {
+      const response = await fetch("http://localhost:3000/prices/shows/list", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch shows");
@@ -40,7 +40,7 @@ export default function PricingPage() {
 
   const fetchPricesForShow = async (showId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/prices/show/${showId}`, {
+      const response = await fetch(`http://localhost:3000/prices/show/${showId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch prices");
@@ -87,7 +87,7 @@ export default function PricingPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/api/prices/show/${showId}/set`, {
+      const response = await fetch(`http://localhost:3000/prices/show/${showId}/set`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,6 +102,7 @@ export default function PricingPage() {
       await fetchPricesForShow(showId);
     } catch (err) {
       alert(err.message || "Error saving prices");
+      console.log(err);
     } finally {
       setSavingShowId(null);
     }
@@ -117,7 +118,7 @@ export default function PricingPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/api/prices/${priceObj.id}`, {
+      const response = await fetch(`http://localhost:3000/prices/${priceObj.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

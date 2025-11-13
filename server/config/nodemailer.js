@@ -132,6 +132,7 @@ export const sendVerificationEmail = async (email, name, verificationToken) => {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Error sending verification email:', error);
+    console.log('EMAIL_HOST:', process.env.EMAIL_HOST, 'EMAIL_PORT:', process.env.EMAIL_PORT, 'EMAIL_USER:', !!process.env.EMAIL_USER);
     throw error;
   }
 };
