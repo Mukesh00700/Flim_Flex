@@ -66,11 +66,11 @@ export const registerAdminController = async (req, res) => {
 
     const newAdmin = await pool.query(
       `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, 'admin')
+       VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, role`,
-      [name, email, hashedPassword,admin]
+      [name, email, hashedPassword,'admin']
     );
-
+    console.log('Inserted admin:', newAdmin.rows[0]);
     const token = generateToken(newAdmin.rows[0]);
 
     res.status(201).json({ token, user: newAdmin.rows[0] });

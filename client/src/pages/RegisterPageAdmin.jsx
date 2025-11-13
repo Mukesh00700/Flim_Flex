@@ -22,7 +22,7 @@ const RegisterPageAdmin = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/auth/register", {
+      const res = await axios.post("http://localhost:3000/auth/register-admin", {
         name: fullName,
         email,
         password,
