@@ -31,10 +31,14 @@ export const registerCustomerController = async (req, res) => {
       return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
     }
     
+    // Check if email already exists in users table
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "Email already in use" });
     }
+
+    // Check if email exists in pending_users (delete old pending if exists)
+    await pool.query("DELETE FROM pending_users WHERE email=$1", [email]);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -42,10 +46,10 @@ export const registerCustomerController = async (req, res) => {
     const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    const newUser = await pool.query(
-      `INSERT INTO users (name, email, password, role, verification_otp, verification_otp_expires, is_verified)
-       VALUES ($1, $2, $3, 'customer', $4, $5, false)
-       RETURNING id, name, email, role, is_verified`,
+    // Store in pending_users table (NOT in users table yet)
+    await pool.query(
+      `INSERT INTO pending_users (name, email, password, verification_otp, verification_otp_expires)
+       VALUES ($1, $2, $3, $4, $5)`,
       [name, email, hashedPassword, verificationOTP, otpExpires]
     );
 
@@ -58,9 +62,8 @@ export const registerCustomerController = async (req, res) => {
       // Continue registration even if email fails
     }
 
-    // DO NOT return token - user must verify email first
     return res.status(201).json({ 
-      message: "Registration successful! Please check your email to verify your account.",
+      message: "Please check your email and enter the OTP to complete registration.",
       email: email,
       requiresVerification: true
     });
@@ -237,37 +240,40 @@ export const verifyEmail = async (req, res) => {
       return res.status(400).json({ msg: otpValidation.message });
     }
 
-    // Find user with this email
-    const userQuery = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
+    // Find pending user with this email
+    const pendingQuery = await pool.query(
+      "SELECT * FROM pending_users WHERE email = $1",
       [email]
     );
 
-    const user = userQuery.rows[0];
+    const pendingUser = pendingQuery.rows[0];
 
-    if (!user) {
-      return res.status(400).json({ msg: "User not found" });
-    }
-
-    // Check if already verified
-    if (user.is_verified) {
-      return res.status(200).json({ msg: "Email is already verified" });
+    if (!pendingUser) {
+      return res.status(400).json({ msg: "Registration not found or already verified" });
     }
 
     // Check if OTP matches
-    if (user.verification_otp !== otp) {
+    if (pendingUser.verification_otp !== otp) {
       return res.status(400).json({ msg: "Invalid OTP" });
     }
 
     // Check if OTP is expired
-    if (new Date() > new Date(user.verification_otp_expires)) {
-      return res.status(400).json({ msg: "OTP has expired. Please request a new one." });
+    if (new Date() > new Date(pendingUser.verification_otp_expires)) {
+      return res.status(400).json({ msg: "OTP has expired. Please register again." });
     }
 
-    // Update user as verified
+    // Move user from pending_users to users table
+    const newUser = await pool.query(
+      `INSERT INTO users (name, email, password, role, is_verified)
+       VALUES ($1, $2, $3, 'customer', true)
+       RETURNING id, name, email, role`,
+      [pendingUser.name, pendingUser.email, pendingUser.password]
+    );
+
+    // Delete from pending_users
     await pool.query(
-      "UPDATE users SET is_verified = true, verification_otp = NULL, verification_otp_expires = NULL WHERE id = $1",
-      [user.id]
+      "DELETE FROM pending_users WHERE email = $1",
+      [email]
     );
 
     res.status(200).json({ 
@@ -297,32 +303,39 @@ export const resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ msg: emailValidation.message });
     }
 
-    const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    const user = userQuery.rows[0];
-
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    if (user.is_verified) {
-      return res.status(400).json({ msg: "Email is already verified" });
-    }
-
-    // Generate new 6-digit OTP
-    const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Update user with new OTP
-    await pool.query(
-      "UPDATE users SET verification_otp = $1, verification_otp_expires = $2 WHERE id = $3",
-      [verificationOTP, otpExpires, user.id]
+    // Find in pending_users table
+    const pendingQuery = await pool.query(
+      "SELECT * FROM pending_users WHERE email = $1",
+      [email]
     );
 
-    // Send verification email with OTP
-    await sendVerificationEmail(email, user.name, verificationOTP);
+    const pendingUser = pendingQuery.rows[0];
+
+    if (!pendingUser) {
+      return res.status(400).json({ msg: "Registration not found. Please register again." });
+    }
+
+    // Generate new OTP
+    const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Update pending user with new OTP
+    await pool.query(
+      "UPDATE pending_users SET verification_otp = $1, verification_otp_expires = $2 WHERE email = $3",
+      [verificationOTP, otpExpires, email]
+    );
+
+    // Send new OTP
+    try {
+      await sendVerificationEmail(email, pendingUser.name, verificationOTP);
+      console.log(`✅ New verification OTP sent to ${email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send verification email:', emailError);
+      return res.status(500).json({ msg: "Failed to send verification email" });
+    }
 
     res.status(200).json({ 
-      msg: "Verification OTP sent successfully! Please check your inbox.",
+      msg: "New OTP sent to your email",
       success: true
     });
   } catch (err) {
