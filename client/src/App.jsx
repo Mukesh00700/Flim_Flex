@@ -51,6 +51,7 @@ const App = () => {
           <Route path="booking-history" element={<CustomerBookingHistoryPage />} />
           </Route>
           <Route path="/seats" element={<SeatsPage />} />
+          <Route path="/seats/:showId" element={<SeatsPage />} />
 
        
         <Route path="*" element={<Navigate to="/" replace />} />

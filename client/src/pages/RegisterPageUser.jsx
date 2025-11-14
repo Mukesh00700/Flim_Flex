@@ -163,7 +163,7 @@ const RegisterPageUser = () => {
                 onChange={(e) =>
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-center text-2xl tracking-widest placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white text-center text-2xl tracking-widest placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="000000"
                 maxLength="6"
                 required
@@ -176,7 +176,7 @@ const RegisterPageUser = () => {
             <button
               type="submit"
               disabled={isVerifying || otp.length !== 6}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 rounded-lg font-semibold transition-all"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition-all transform hover:scale-105 disabled:hover:scale-100"
             >
               {isVerifying ? "Verifying..." : "Verify Email"}
             </button>
@@ -185,7 +185,7 @@ const RegisterPageUser = () => {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                className="text-purple-400 hover:text-purple-300 text-sm"
+                className="text-purple-400 hover:text-purple-300 text-sm transition-colors"
               >
                 Didn’t receive OTP? Resend
               </button>

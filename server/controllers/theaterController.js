@@ -142,6 +142,24 @@ export const addSeatsToHall = async (req, res) => {
 
     await client.query('BEGIN');
 
+    // Update hall with default prices if provided
+    const { defaultPrices } = req.body;
+    if (defaultPrices) {
+      await client.query(
+        `UPDATE halls 
+         SET default_basic_price = $1, 
+             default_recliner_price = $2, 
+             default_vip_price = $3
+         WHERE id = $4`,
+        [
+          defaultPrices.basicPrice || 200,
+          defaultPrices.reclinerPrice || 350,
+          defaultPrices.vipPrice || 500,
+          hallId
+        ]
+      );
+    }
+
     // Generate seats with proper distribution
     const seats = [];
     const rows = Math.ceil(totalSeats / seatsPerRow);
