@@ -4,13 +4,13 @@
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;
 
--- Add verification_token column
+-- Add verification_otp column (6-digit OTP)
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);
+ADD COLUMN IF NOT EXISTS verification_otp VARCHAR(6);
 
--- Add verification_token_expires column
+-- Add verification_otp_expires column
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMPTZ;
+ADD COLUMN IF NOT EXISTS verification_otp_expires TIMESTAMPTZ;
 
 -- Add password_reset_token column
 ALTER TABLE users 
@@ -20,8 +20,8 @@ ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS password_reset_token_expires TIMESTAMPTZ;
 
--- Create index on verification_token for faster lookups
-CREATE INDEX IF NOT EXISTS idx_users_verification_token ON users(verification_token);
+-- Create index on verification_otp for faster lookups
+CREATE INDEX IF NOT EXISTS idx_users_verification_otp ON users(verification_otp);
 
 -- Create index on password_reset_token for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_password_reset_token ON users(password_reset_token);

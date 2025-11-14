@@ -22,14 +22,12 @@ transporter.verify((error, success) => {
 });
 
 /**
- * Send verification email
+ * Send verification email with OTP
  * @param {string} email - Recipient email
  * @param {string} name - Recipient name
- * @param {string} verificationToken - Verification token
+ * @param {string} verificationOTP - 6-digit OTP
  */
-export const sendVerificationEmail = async (email, name, verificationToken) => {
-  const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
-
+export const sendVerificationEmail = async (email, name, verificationOTP) => {
   const mailOptions = {
     from: `"FilmFlex" <${process.env.EMAIL_USER}>`,
     to: email,
@@ -66,18 +64,17 @@ export const sendVerificationEmail = async (email, name, verificationToken) => {
             padding: 20px;
             border-radius: 8px;
           }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: #3b82f6;
+          .otp-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
+            font-size: 32px;
             font-weight: bold;
-          }
-          .button:hover {
-            background-color: #2563eb;
+            letter-spacing: 8px;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
           }
           .footer {
             text-align: center;
@@ -85,13 +82,12 @@ export const sendVerificationEmail = async (email, name, verificationToken) => {
             font-size: 12px;
             color: #666;
           }
-          .token {
-            background-color: #f3f4f6;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            word-break: break-all;
-            margin: 10px 0;
+          .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 4px;
           }
         </style>
       </head>
@@ -103,18 +99,30 @@ export const sendVerificationEmail = async (email, name, verificationToken) => {
           <div class="content">
             <h2>Welcome, ${name}! 👋</h2>
             <p>Thank you for registering with FilmFlex. We're excited to have you on board!</p>
-            <p>To complete your registration and start booking your favorite movies, please verify your email address by clicking the button below:</p>
+            <p>To complete your registration and start booking your favorite movies, please use the following One-Time Password (OTP):</p>
             
-            <div style="text-align: center;">
-              <a href="${verificationUrl}" class="button">Verify Email Address</a>
+            <div class="otp-box">
+              ${verificationOTP}
             </div>
 
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <div class="token">${verificationUrl}</div>
+            <div class="warning">
+              <strong>⏰ Important:</strong> This OTP will expire in <strong>10 minutes</strong>.
+            </div>
 
-            <p><strong>Note:</strong> This verification link will expire in 24 hours.</p>
+            <p><strong>How to verify:</strong></p>
+            <ol>
+              <li>Go to the email verification page</li>
+              <li>Enter your email address</li>
+              <li>Enter the OTP shown above</li>
+              <li>Click "Verify"</li>
+            </ol>
             
-            <p>If you didn't create an account with FilmFlex, please ignore this email.</p>
+            <p style="color: #dc2626; font-weight: bold;">🔒 Security Note:</p>
+            <ul>
+              <li>Never share this OTP with anyone</li>
+              <li>FilmFlex will never ask for your OTP via phone or email</li>
+              <li>If you didn't create an account, please ignore this email</li>
+            </ul>
           </div>
           <div class="footer">
             <p>© 2025 FilmFlex. All rights reserved.</p>
@@ -128,7 +136,7 @@ export const sendVerificationEmail = async (email, name, verificationToken) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Verification email sent:', info.messageId);
+    console.log('✅ Verification OTP email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('❌ Error sending verification email:', error);
