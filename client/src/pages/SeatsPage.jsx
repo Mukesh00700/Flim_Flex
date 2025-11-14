@@ -9,17 +9,16 @@ const SeatsPage = () => {
 
   const navigate = useNavigate();
 
-  // 🎞️ Define sections
   const sections = [
     { name: "VIP", price: 260, rows: ["A"], cols: 10 },
     { name: "PREMIUM", price: 180, rows: ["B", "C", "D"], cols: 14 },
     { name: "EXECUTIVE", price: 130, rows: ["E", "F", "G"], cols: 14 },
   ];
 
-  // ❌ Already booked seats
+ 
   const bookedSeats = ["A5", "A6", "C7", "E8", "G9", "G10"];
 
-  // 🧠 Toggle seat selection (add/remove)
+
   const handleSeatClick = (seatId) => {
     const section = sections.find((s) => s.rows.includes(seatId.charAt(0)));
     if (!section || bookedSeats.includes(seatId)) return;
@@ -35,20 +34,19 @@ const SeatsPage = () => {
     }
   };
 
-  // 💰 Calculate total dynamically
+
   const totalAmount = selectedSeats.reduce((sum, seat) => {
     const section = sections.find((s) => s.rows.includes(seat.charAt(0)));
     return sum + (section ? section.price : 0);
   }, 0);
 
-  // 🎟️ Seat count popup
+
   const handleSeatSelectNumber = (num) => {
     setSeatCount(num);
     setShowPopup(false);
     setSelectedSeats([]);
   };
 
-  // 🎨 Seat color logic
   const getSeatClasses = (seatId) => {
     if (bookedSeats.includes(seatId))
       return "bg-gray-300 border-gray-300 text-gray-400 cursor-not-allowed";
@@ -67,7 +65,6 @@ const SeatsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-100 flex flex-col items-center py-8 px-4 relative overflow-x-hidden">
 
-      {/* 🎟️ Popup for seat count */}
       {showPopup && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 backdrop-blur-sm">
           <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8 rounded-2xl shadow-2xl border border-gray-700 text-center w-80 animate-fadeIn">
@@ -88,7 +85,6 @@ const SeatsPage = () => {
         </div>
       )}
 
-      {/* 🔴 Seat count display */}
       {seatCount > 0 && (
         <div className="fixed top-4 right-6 flex items-center space-x-3 z-40">
           <p className="text-red-500 font-semibold text-lg bg-red-50 px-4 py-1 rounded-md shadow-sm">
@@ -103,12 +99,11 @@ const SeatsPage = () => {
         </div>
       )}
 
-      {/* 🚪 Entry label */}
       <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 rotate-90 text-sm">
         ENTRY →
       </div>
 
-      {/* 🪑 Seat Layout */}
+
       <div className="w-full flex flex-col items-center space-y-8">
         {sections.map((section) => (
           <div key={section.name} className="text-center">

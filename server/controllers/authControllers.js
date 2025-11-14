@@ -86,7 +86,6 @@ export const registerAdminController = async (req, res) => {
       return res.status(403).json({ msg: "Unauthorized to register as admin" });
     }
 
-    // Validate input using regex
     const validation = validateRegistration({ name, email, password });
     if (!validation.isValid) {
       return res.status(400).json({ msg: "Validation failed", errors: validation.errors });

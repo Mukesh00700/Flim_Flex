@@ -141,7 +141,6 @@ export default function MoviesPage() {
       formData.append("description", form.description || "");
       formData.append("genre", form.genre);
       formData.append("release_date", form.release_date);
-      // send as comma-separated string because server currently expects "en,hi"
       formData.append("languages", languagesArray.join(","));
 
       if (form.poster_file) {
