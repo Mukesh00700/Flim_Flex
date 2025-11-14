@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Loader, MapPin, Building2, ChevronDown } from "lucide-react";
+import AddSeatsToHall from "../components/AddSeatsToHall";
 
 export default function TheatersPage() {
   const [theaters, setTheaters] = useState([]);
@@ -14,7 +15,21 @@ export default function TheatersPage() {
   
   const [showHallForm, setShowHallForm] = useState(false);
   const [selectedTheaterId, setSelectedTheaterId] = useState(null);
-  const [hallForm, setHallForm] = useState({ name: "", capacity: "" });
+  const [hallForm, setHallForm] = useState({ 
+    name: "", 
+    capacity: "",
+    useSeats: false,
+    seatConfiguration: {
+      totalSeats: 100,
+      seatsPerRow: 10,
+      basicSeats: 50,
+      reclinerSeats: 30,
+      vipSeats: 20
+    }
+  });
+
+  const [showAddSeatsModal, setShowAddSeatsModal] = useState(false);
+  const [selectedHallForSeats, setSelectedHallForSeats] = useState(null);
 
   const token = localStorage.getItem("token");
 
@@ -160,8 +175,25 @@ const fetchTheaters = async () => {
   // Handle add hall form
   const handleShowHallForm = (theaterId) => {
     setSelectedTheaterId(theaterId);
-    setHallForm({ name: "", capacity: "" });
+    setHallForm({ 
+      name: "", 
+      capacity: "",
+      useSeats: false,
+      seatConfiguration: {
+        totalSeats: 100,
+        seatsPerRow: 10,
+        basicSeats: 50,
+        reclinerSeats: 30,
+        vipSeats: 20
+      }
+    });
     setShowHallForm(true);
+  };
+
+  // Handle add seats to existing hall
+  const handleShowAddSeats = (hallId) => {
+    setSelectedHallForSeats(hallId);
+    setShowAddSeatsModal(true);
   };
 
   // Save hall
@@ -173,13 +205,31 @@ const fetchTheaters = async () => {
     }
 
     try {
+      const payload = {
+        name: hallForm.name,
+        capacity: hallForm.capacity || null
+      };
+
+      // Add seat configuration if enabled
+      if (hallForm.useSeats) {
+        const { totalSeats, seatsPerRow, basicSeats, reclinerSeats, vipSeats } = hallForm.seatConfiguration;
+        const sumOfTypes = basicSeats + reclinerSeats + vipSeats;
+        
+        if (sumOfTypes !== totalSeats) {
+          alert(`Sum of seat types (${sumOfTypes}) must equal total seats (${totalSeats})`);
+          return;
+        }
+        
+        payload.seatConfiguration = hallForm.seatConfiguration;
+      }
+
       const response = await fetch(`http://localhost:3000/theater/${selectedTheaterId}/halls`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(hallForm),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) throw new Error("Failed to create hall");
@@ -187,7 +237,18 @@ const fetchTheaters = async () => {
       // Refresh halls for this theater
       await fetchHalls(selectedTheaterId);
       setShowHallForm(false);
-      setHallForm({ name: "", capacity: "" });
+      setHallForm({ 
+        name: "", 
+        capacity: "",
+        useSeats: false,
+        seatConfiguration: {
+          totalSeats: 100,
+          seatsPerRow: 10,
+          basicSeats: 50,
+          reclinerSeats: 30,
+          vipSeats: 20
+        }
+      });
     } catch (err) {
       alert(err.message || "Error creating hall");
     }
@@ -280,8 +341,8 @@ const fetchTheaters = async () => {
 
       {/* Hall Form Modal */}
       {showHallForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-slate-800 rounded-lg p-6 max-w-2xl w-full my-8">
             <h2 className="text-xl font-bold mb-4">Add Hall</h2>
             <form onSubmit={handleSaveHall} className="space-y-4">
               <input
@@ -299,6 +360,114 @@ const fetchTheaters = async () => {
                 onChange={(e) => setHallForm({ ...hallForm, capacity: e.target.value })}
                 className="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 text-white placeholder-gray-400"
               />
+
+              {/* Seat Configuration Toggle */}
+              <div className="border border-slate-600 rounded-lg p-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hallForm.useSeats}
+                    onChange={(e) => setHallForm({ ...hallForm, useSeats: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-white font-medium">Auto-generate seats with configuration</span>
+                </label>
+
+                {hallForm.useSeats && (
+                  <div className="mt-4 space-y-3 border-t border-slate-600 pt-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Total Seats</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={hallForm.seatConfiguration.totalSeats}
+                          onChange={(e) => setHallForm({
+                            ...hallForm,
+                            seatConfiguration: {
+                              ...hallForm.seatConfiguration,
+                              totalSeats: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          className="w-full p-2 rounded bg-slate-700 border border-slate-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-300 mb-1">Seats per Row</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={hallForm.seatConfiguration.seatsPerRow}
+                          onChange={(e) => setHallForm({
+                            ...hallForm,
+                            seatConfiguration: {
+                              ...hallForm.seatConfiguration,
+                              seatsPerRow: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          className="w-full p-2 rounded bg-slate-700 border border-slate-600 text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">🪑 Basic Seats</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={hallForm.seatConfiguration.basicSeats}
+                        onChange={(e) => setHallForm({
+                          ...hallForm,
+                          seatConfiguration: {
+                            ...hallForm.seatConfiguration,
+                            basicSeats: parseInt(e.target.value) || 0
+                          }
+                        })}
+                        className="w-full p-2 rounded bg-slate-700 border border-slate-600 text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">💺 Recliner Seats</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={hallForm.seatConfiguration.reclinerSeats}
+                        onChange={(e) => setHallForm({
+                          ...hallForm,
+                          seatConfiguration: {
+                            ...hallForm.seatConfiguration,
+                            reclinerSeats: parseInt(e.target.value) || 0
+                          }
+                        })}
+                        className="w-full p-2 rounded bg-slate-700 border border-slate-600 text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">👑 VIP Seats</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={hallForm.seatConfiguration.vipSeats}
+                        onChange={(e) => setHallForm({
+                          ...hallForm,
+                          seatConfiguration: {
+                            ...hallForm.seatConfiguration,
+                            vipSeats: parseInt(e.target.value) || 0
+                          }
+                        })}
+                        className="w-full p-2 rounded bg-slate-700 border border-slate-600 text-white"
+                      />
+                    </div>
+
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded p-2 text-xs text-blue-300">
+                      Sum: {hallForm.seatConfiguration.basicSeats + hallForm.seatConfiguration.reclinerSeats + hallForm.seatConfiguration.vipSeats} / {hallForm.seatConfiguration.totalSeats}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -316,6 +485,26 @@ const fetchTheaters = async () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Add Seats Modal */}
+      {showAddSeatsModal && selectedHallForSeats && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <AddSeatsToHall
+            hallId={selectedHallForSeats}
+            onClose={() => {
+              setShowAddSeatsModal(false);
+              setSelectedHallForSeats(null);
+            }}
+            onSuccess={() => {
+              // Refresh halls to show updated seat count
+              const theaterId = Object.keys(halls).find(tId => 
+                halls[tId]?.some(h => h.id === selectedHallForSeats)
+              );
+              if (theaterId) fetchHalls(theaterId);
+            }}
+          />
         </div>
       )}
 
@@ -407,22 +596,38 @@ const fetchTheaters = async () => {
                           key={hall.id}
                           className="bg-slate-700/50 p-3 rounded-lg flex justify-between items-center hover:bg-slate-700 transition border border-slate-600"
                         >
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{hall.name}</p>
                             {hall.capacity && (
                               <p className="text-sm text-gray-400">Capacity: {hall.capacity}</p>
                             )}
-                            {hall.seat_count && (
-                              <p className="text-sm text-gray-400">Seats: {hall.seat_count}</p>
+                            {hall.seat_count !== undefined && (
+                              <p className="text-sm text-gray-400">
+                                Seats: {hall.seat_count}
+                                {hall.seat_count === 0 && (
+                                  <span className="text-yellow-400 ml-2">(No seats configured)</span>
+                                )}
+                              </p>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleDeleteHall(hall.id, theater.id)}
-                            className="p-1 hover:bg-slate-600 rounded text-red-400 transition"
-                            title="Delete Hall"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            {(hall.seat_count === 0 || !hall.seat_count) && (
+                              <button
+                                onClick={() => handleShowAddSeats(hall.id)}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white flex items-center gap-1 transition"
+                                title="Add Seats"
+                              >
+                                <Plus size={14} /> Add Seats
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteHall(hall.id, theater.id)}
+                              className="p-1 hover:bg-slate-600 rounded text-red-400 transition"
+                              title="Delete Hall"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
