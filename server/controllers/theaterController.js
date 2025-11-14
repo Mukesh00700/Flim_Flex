@@ -89,29 +89,147 @@ export const deleteTheater = async (req, res) => {
   }
 };
 
-// Add seats to a hall (for a theater)
+// Add seats to a hall with configurable seat types
 export const addSeatsToHall = async (req, res) => {
+  const client = await pool.connect();
   try {
     const { hallId } = req.params;
-    const { seats } = req.body; // seats: array of { row_label, seat_number, seat_type }
+    const { seatConfiguration } = req.body;
 
-    if (!Array.isArray(seats) || seats.length === 0) {
-      return res.status(400).json({ msg: "Seats array required" });
+    if (!seatConfiguration) {
+      return res.status(400).json({ 
+        msg: "Seat configuration is required",
+        example: {
+          seatConfiguration: {
+            totalSeats: 100,
+            seatsPerRow: 10,
+            normalSeats: 50,
+            executiveSeats: 30,
+            vipSeats: 20
+          }
+        }
+      });
     }
 
-    // Build bulk insert query
-    let values = [];
-    let params = [];
-    seats.forEach((s, i) => {
-      values.push(`($1, $${i * 3 + 2}, $${i * 3 + 3}, $${i * 3 + 4})`);
-      params.push(s.row_label, s.seat_number, s.seat_type || "basic");
-    });
-    const query = `INSERT INTO seats (hall_id, row_label, seat_number, seat_type) VALUES ${values.join(", ")} RETURNING *`;
-    const result = await pool.query(query, [hallId, ...params]);
-    res.status(201).json({ added: result.rows });
+    const { totalSeats, seatsPerRow, normalSeats, executiveSeats, vipSeats } = seatConfiguration;
+
+    // Validation
+    if (!totalSeats || !seatsPerRow) {
+      return res.status(400).json({ msg: "totalSeats and seatsPerRow are required" });
+    }
+
+    const typeSum = (normalSeats || 0) + (executiveSeats || 0) + (vipSeats || 0);
+    if (typeSum !== totalSeats) {
+      return res.status(400).json({ 
+        msg: "Sum of seat types must equal total seats",
+        provided: { normalSeats, executiveSeats, vipSeats, sum: typeSum },
+        expected: totalSeats
+      });
+    }
+
+    // Check if hall exists and user has permission
+    if (req.user.role === "admin") {
+      const hallCheck = await client.query(
+        `SELECT h.id FROM halls h
+         JOIN theaters t ON h.theater_id = t.id
+         WHERE h.id = $1 AND t.admin_id = $2`,
+        [hallId, req.user.id]
+      );
+      if (hallCheck.rowCount === 0) {
+        return res.status(403).json({ msg: 'Not authorized' });
+      }
+    }
+
+    await client.query('BEGIN');
+
+    // Generate seats with proper distribution
+    const seats = [];
+    const rows = Math.ceil(totalSeats / seatsPerRow);
+    const rowLabels = [];
+    
+    // Generate row labels (A-Z, then AA-AZ, etc.)
+    for (let i = 0; i < rows; i++) {
+      if (i < 26) {
+        rowLabels.push(String.fromCharCode(65 + i)); // A-Z
+      } else {
+        const first = String.fromCharCode(65 + Math.floor(i / 26) - 1);
+        const second = String.fromCharCode(65 + (i % 26));
+        rowLabels.push(first + second); // AA, AB, etc.
+      }
+    }
+
+    let seatCounter = 0;
+    let basicRemaining = basicSeats || 0;
+    let reclinerRemaining = reclinerSeats || 0;
+    let vipRemaining = vipSeats || 0;
+
+    // Distribute seats: VIP at front, Recliner in middle, Basic at back
+    for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
+      const rowLabel = rowLabels[rowIndex];
+      const seatsInThisRow = Math.min(seatsPerRow, totalSeats - seatCounter);
+
+      for (let seatNum = 1; seatNum <= seatsInThisRow; seatNum++) {
+        let seatType = 'basic';
+        
+        // Assign seat type based on remaining counts
+        if (vipRemaining > 0) {
+          seatType = 'vip';
+          vipRemaining--;
+        } else if (reclinerRemaining > 0) {
+          seatType = 'recliner';
+          reclinerRemaining--;
+        } else if (basicRemaining > 0) {
+          seatType = 'basic';
+          basicRemaining--;
+        }
+
+        seats.push([hallId, rowLabel, seatNum, seatType]);
+        seatCounter++;
+      }
+    }
+
+    // Bulk insert seats
+    if (seats.length > 0) {
+      const placeholders = seats.map((_, idx) => 
+        `($${idx * 4 + 1}, $${idx * 4 + 2}, $${idx * 4 + 3}, $${idx * 4 + 4})`
+      ).join(', ');
+      
+      const flatParams = seats.flat();
+      const result = await client.query(
+        `INSERT INTO seats (hall_id, row_label, seat_number, seat_type) 
+         VALUES ${placeholders} RETURNING *`,
+        flatParams
+      );
+
+      // Update hall capacity
+      await client.query(
+        'UPDATE halls SET capacity = capacity + $1 WHERE id = $2',
+        [seats.length, hallId]
+      );
+
+      await client.query('COMMIT');
+
+      res.status(201).json({ 
+        msg: 'Seats added successfully',
+        added: result.rows.length,
+        breakdown: {
+          total: result.rows.length,
+          normal: normalSeats || 0,
+          executive: executiveSeats || 0,
+          vip: vipSeats || 0
+        },
+        seats: result.rows
+      });
+    } else {
+      await client.query('ROLLBACK');
+      res.status(400).json({ msg: 'No seats to add' });
+    }
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ msg: "Server error" });
+  } finally {
+    client.release();
   }
 };
 
@@ -167,30 +285,69 @@ export const createHall = async (req, res) => {
 
     // Generate seats if seatConfiguration is provided
     if (seatConfiguration) {
-      const { rows, seatsPerRow, vipRows, reclinerRows } = seatConfiguration;
+      const { totalSeats, seatsPerRow, basicSeats, reclinerSeats, vipSeats } = seatConfiguration;
 
-      if (!rows || !seatsPerRow) {
+      if (!totalSeats || !seatsPerRow) {
         await client.query('ROLLBACK');
         return res.status(400).json({ 
-          msg: 'seatConfiguration must include rows (array of row labels) and seatsPerRow (number)' 
+          msg: 'seatConfiguration must include totalSeats and seatsPerRow' 
         });
       }
 
-      const vipRowSet = new Set(vipRows || []);
-      const reclinerRowSet = new Set(reclinerRows || []);
+      // Validate seat type counts sum to totalSeats
+      const basicCount = basicSeats || 0;
+      const reclinerCount = reclinerSeats || 0;
+      const vipCount = vipSeats || 0;
+      const sumOfTypes = basicCount + reclinerCount + vipCount;
+
+      if (sumOfTypes !== totalSeats) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          msg: `Sum of seat types (${sumOfTypes}) must equal totalSeats (${totalSeats})`
+        });
+      }
+
       const seats = [];
-
-      // Generate seats for each row
-      for (const rowLabel of rows) {
-        let seatType = 'basic';
-        if (vipRowSet.has(rowLabel)) {
-          seatType = 'vip';
-        } else if (reclinerRowSet.has(rowLabel)) {
-          seatType = 'recliner';
+      const rows = Math.ceil(totalSeats / seatsPerRow);
+      const rowLabels = [];
+      
+      // Generate row labels (A-Z, then AA-AZ, etc.)
+      for (let i = 0; i < rows; i++) {
+        if (i < 26) {
+          rowLabels.push(String.fromCharCode(65 + i));
+        } else {
+          const first = String.fromCharCode(65 + Math.floor(i / 26) - 1);
+          const second = String.fromCharCode(65 + (i % 26));
+          rowLabels.push(first + second);
         }
+      }
 
-        for (let seatNum = 1; seatNum <= seatsPerRow; seatNum++) {
+      let seatCounter = 0;
+      let basicRemaining = basicCount;
+      let reclinerRemaining = reclinerCount;
+      let vipRemaining = vipCount;
+
+      // Distribute seats: VIP at front, Recliner in middle, Basic at back
+      for (let rowIndex = 0; rowIndex < rows; rowIndex++) {
+        const rowLabel = rowLabels[rowIndex];
+        const seatsInThisRow = Math.min(seatsPerRow, totalSeats - seatCounter);
+
+        for (let seatNum = 1; seatNum <= seatsInThisRow; seatNum++) {
+          let seatType = 'basic';
+          
+          if (vipRemaining > 0) {
+            seatType = 'vip';
+            vipRemaining--;
+          } else if (reclinerRemaining > 0) {
+            seatType = 'recliner';
+            reclinerRemaining--;
+          } else if (basicRemaining > 0) {
+            seatType = 'basic';
+            basicRemaining--;
+          }
+
           seats.push([hall.id, rowLabel, seatNum, seatType]);
+          seatCounter++;
         }
       }
 
@@ -207,14 +364,12 @@ export const createHall = async (req, res) => {
           flatParams
         );
 
-        // Update capacity if not provided
-        if (!capacity) {
-          await client.query(
-            'UPDATE halls SET capacity = $1 WHERE id = $2',
-            [seats.length, hall.id]
-          );
-          hall.capacity = seats.length;
-        }
+        // Update capacity
+        await client.query(
+          'UPDATE halls SET capacity = $1 WHERE id = $2',
+          [seats.length, hall.id]
+        );
+        hall.capacity = seats.length;
       }
     }
 
