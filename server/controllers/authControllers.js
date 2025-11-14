@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../config/nodemailer.js';
+import { validateRegistration, validateEmail, validatePassword, validateOTP } from '../utils/validation.js';
 dotenv.config();
 
 const generateToken = (user) => {
@@ -23,6 +24,12 @@ export const registerCustomerController = async (req, res) => {
     if(!req.body) return res.status(400).json({msg:"All fields are required"});
     const { name, email, password } = req.body;
     if(!name || !email || !password) return res.status(400).json({msg:"Must fill all the fields"});
+    
+    // Validate input using regex
+    const validation = validateRegistration({ name, email, password });
+    if (!validation.isValid) {
+      return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
+    }
     
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
@@ -51,12 +58,11 @@ export const registerCustomerController = async (req, res) => {
       // Continue registration even if email fails
     }
 
-    const token = generateToken(newUser.rows[0]);
-
+    // DO NOT return token - user must verify email first
     return res.status(201).json({ 
-      token, 
-      user: newUser.rows[0],
-      message: "Registration successful! Please check your email to verify your account."
+      message: "Registration successful! Please check your email to verify your account.",
+      email: email,
+      requiresVerification: true
     });
   } catch (err) {
     console.error(err);
@@ -77,6 +83,12 @@ export const registerAdminController = async (req, res) => {
       return res.status(403).json({ msg: "Unauthorized to register as admin" });
     }
 
+    // Validate input using regex
+    const validation = validateRegistration({ name, email, password });
+    if (!validation.isValid) {
+      return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
+    }
+
     const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "Email already in use" });
@@ -84,10 +96,11 @@ export const registerAdminController = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Admins are auto-verified since they have the secret key
     const newAdmin = await pool.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role`,
+      `INSERT INTO users (name, email, password, role, is_verified)
+       VALUES ($1, $2, $3, $4, true)
+       RETURNING id, name, email, role, is_verified`,
       [name, email, hashedPassword,'admin']
     );
     console.log('Inserted admin:', newAdmin.rows[0]);
@@ -106,6 +119,12 @@ export const registerAdminController = async (req, res) => {
 export const loginController = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ msg: emailValidation.message });
+    }
 
     const userQuery = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
     const user = userQuery.rows[0];
@@ -207,6 +226,18 @@ export const verifyEmail = async (req, res) => {
       return res.status(400).json({ msg: "Email and OTP are required" });
     }
 
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ msg: emailValidation.message });
+    }
+
+    // Validate OTP format
+    const otpValidation = validateOTP(otp);
+    if (!otpValidation.isValid) {
+      return res.status(400).json({ msg: otpValidation.message });
+    }
+
     // Find user with this email
     const userQuery = await pool.query(
       "SELECT * FROM users WHERE email = $1",
@@ -261,6 +292,12 @@ export const resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ msg: "Email is required" });
     }
 
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ msg: emailValidation.message });
+    }
+
     const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     const user = userQuery.rows[0];
 
@@ -304,6 +341,12 @@ export const requestPasswordReset = async (req, res) => {
 
     if (!email) {
       return res.status(400).json({ msg: "Email is required" });
+    }
+
+    // Validate email format
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({ msg: emailValidation.message });
     }
 
     const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
@@ -351,8 +394,10 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ msg: "Token and new password are required" });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ msg: "Password must be at least 6 characters long" });
+    // Validate password using regex
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ msg: passwordValidation.message });
     }
 
     // Find user with this reset token
