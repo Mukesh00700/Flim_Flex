@@ -54,7 +54,7 @@ export const upsertPrice = async (req, res) => {
   }
 };
 
-// ✅ Set prices for multiple seat types in one show
+// Set prices for multiple seat types in one show
 export const setPricesForShow = async (req, res) => {
   try {
     const { showId, prices } = req.body; // prices: [{ seatType: 'basic', price: 250 }, ...]

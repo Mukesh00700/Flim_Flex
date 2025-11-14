@@ -9,7 +9,7 @@ router.get('/getRunningMovies', getRunningMovies);
 
 // now accepts image under "poster"
 router.post('/addMovies', upload.single('poster'), addMovie);
-// router.put('/updateMovies/:id', upload.single('poster'), updateMovie);
+router.put('/updateMovies/:id', upload.single('poster'), updateMovie);
 
 router.delete('/deleteMovies/:id', deleteMovie);
 
