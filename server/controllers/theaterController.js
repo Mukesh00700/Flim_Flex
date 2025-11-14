@@ -1,9 +1,17 @@
 import pool from "../config/db.js";
+import { validateTheaterData, validateTheaterName } from '../utils/validation.js';
 
 
 export const createTheater = async (req, res) => {
   try {
     const { name, city, address } = req.body;
+    
+    // Validate theater data
+    const validation = validateTheaterData({ name, city });
+    if (!validation.isValid) {
+      return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
+    }
+    
     const adminId = req.user.role === "admin" ? req.user.id : null;
 
     const result = await pool.query(
@@ -39,6 +47,12 @@ export const updateTheater = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, city, address } = req.body;
+
+    // Validate theater data
+    const validation = validateTheaterData({ name, city });
+    if (!validation.isValid) {
+      return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
+    }
 
     if (req.user.role === "admin") {
       const check = await pool.query("SELECT * FROM theaters WHERE id = $1 AND admin_id = $2", [id, req.user.id]);
@@ -121,6 +135,12 @@ export const createHall = async (req, res) => {
 
     if (!name) {
       return res.status(400).json({ msg: 'Hall name is required' });
+    }
+
+    // Validate hall name
+    const nameValidation = validateTheaterName(name);
+    if (!nameValidation.isValid) {
+      return res.status(400).json({ msg: nameValidation.message });
     }
 
     // Check if theater exists and user has permission
@@ -247,6 +267,14 @@ export const updateHall = async (req, res) => {
   try {
     const { hallId } = req.params;
     const { name, capacity } = req.body;
+
+    // Validate hall name if provided
+    if (name) {
+      const nameValidation = validateTheaterName(name);
+      if (!nameValidation.isValid) {
+        return res.status(400).json({ msg: nameValidation.message });
+      }
+    }
 
     // Check authorization
     if (req.user.role === "admin") {
