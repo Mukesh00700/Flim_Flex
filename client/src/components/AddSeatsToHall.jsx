@@ -25,7 +25,7 @@ const AddSeatsToHall = ({ hallId }) => {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(`/api/theaters/halls/${hallId}/seats`, { seats });
+      const res = await axios.post(`/theaters/halls/${hallId}/seats`, { seats });
       setResult(res.data);
     } catch (err) {
       setError(err.response?.data?.msg || "Error adding seats");

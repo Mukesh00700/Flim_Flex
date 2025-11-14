@@ -29,13 +29,13 @@ export default function AdminMain() {
       const movies = await moviesRes.json();
 
       // Fetch all bookings
-      const bookingsRes = await fetch("http://localhost:3000/api/bookings/my-theater", {
+      const bookingsRes = await fetch("http://localhost:3000/bookings/my-theater", {
         headers: { Authorization: `Bearer ${token}` }
       });
       const bookings = bookingsRes.ok ? await bookingsRes.json() : [];
 
       // Fetch recent customers
-      const usersRes = await fetch("/api/users/recent-by-theater", {
+      const usersRes = await fetch("http://localhost:3000/users/recent-by-theater", {
         headers: { Authorization: `Bearer ${token}` }
       });
       const users = usersRes.ok ? await usersRes.json() : [];

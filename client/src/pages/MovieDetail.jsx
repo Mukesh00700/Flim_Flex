@@ -48,7 +48,7 @@ export default function MovieDetail() {
       });
 
     // Fetch shows for selected date
-    fetch(`http://localhost:3000/api/bookings/shows?movieId=${movieId}&date=${selectedDate}`)
+    fetch(`http://localhost:3000/bookings/shows?movieId=${movieId}&date=${selectedDate}`)
       .then(r => {
         if (!r.ok) {
           if (r.status === 404) throw new Error('No shows available');

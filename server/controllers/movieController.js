@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
 
 export const getAllMovies = async (req, res) => {
   try {
@@ -31,14 +32,20 @@ export const getRunningMovies = async (req, res) => {
 
 
 export const addMovie = async (req, res) => {
-  const { title, description, languages, genre, release_date, poster_url } = req.body;
+  const { title, description, languages, genre, release_date } = req.body;
 
   if (!title || !genre || !release_date || !languages) {
     return res.status(400).json({ msg: 'Please provide title, genre, release date, and languages.' });
   }
 
   try {
-  
+    let posterUrl = req.body.poster_url || null;
+
+    if (req.file && req.file.buffer) {
+      const result = await uploadBufferToCloudinary(req.file.buffer, "FilmFlex/posters");
+      posterUrl = result.secure_url || result.url;
+    }
+
     const languageArray = `{${languages}}`;
 
     const query = `
@@ -46,7 +53,7 @@ export const addMovie = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
-    const values = [title, description, languageArray, genre, release_date, poster_url];
+    const values = [title, description || null, languageArray, genre, release_date, posterUrl];
     const { rows } = await pool.query(query, values);
 
     res.status(201).json({ msg: 'Movie added successfully!', movie: rows[0] });

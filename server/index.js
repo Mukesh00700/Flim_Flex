@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoutes.js"
 import bookingsRoutes from "./routes/bookingsRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import ticketBookingRoutes from "./routes/ticketBookingRoutes.js";
+import priceRoutes from "./routes/priceRoutes.js"
 import cors from "cors";
 import dotenv from 'dotenv';
 
@@ -60,19 +61,25 @@ try{
 }
 try{
     console.log("loading bookings route");
-    app.use("/api/bookings", bookingsRoutes);
+    app.use("/bookings", bookingsRoutes);
 }catch(e){
     console.log("Couldn't connect to bookings route", e);
 }
 try{
     console.log("loading customer route");
-    app.use("/api/customers", customerRoutes);
+    app.use("/customers", customerRoutes);
 }catch(e){
     console.log("Couldn't connect to customer route", e);
 }
 try{
     console.log("loading ticket booking route");
-    app.use("/api/bookings", ticketBookingRoutes);
+    app.use("/bookings", ticketBookingRoutes);
+}catch(e){
+    console.log("Couldn't connect to ticket booking route", e);
+}
+try{
+    console.log("loading price route");
+    app.use("/prices", priceRoutes);
 }catch(e){
     console.log("Couldn't connect to ticket booking route", e);
 }

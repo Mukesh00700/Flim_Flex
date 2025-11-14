@@ -30,7 +30,7 @@ export default function ShowSchedulerPage() {
         setError("");
 
         // Fetch theaters
-        const theaterRes = await fetch("http://localhost:3000/theaters/getTheaters", {
+        const theaterRes = await fetch("http://localhost:3000/theater/getTheaters", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!theaterRes.ok) throw new Error("Failed to fetch theaters");
@@ -65,7 +65,7 @@ export default function ShowSchedulerPage() {
   // Fetch halls for a specific theater
   const fetchHalls = async (theaterId) => {
     try {
-      const response = await fetch(`http://localhost:3000/theaters/${theaterId}/halls`, {
+      const response = await fetch(`http://localhost:3000/theater/${theaterId}/halls`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch halls");
@@ -85,7 +85,7 @@ export default function ShowSchedulerPage() {
   // Fetch shows for a hall
   const fetchShowsForHall = async (hallId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/bookings/hall/${hallId}/shows`, {
+      const response = await fetch(`http://localhost:3000/bookings/hall/${hallId}/shows`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch shows");
@@ -129,8 +129,8 @@ export default function ShowSchedulerPage() {
 
     try {
       const url = editingShowId
-        ? `http://localhost:3000/api/bookings/schedule/${editingShowId}`
-        : "http://localhost:3000/api/bookings/schedule/create";
+        ? `http://localhost:3000/bookings/schedule/${editingShowId}`
+        : "http://localhost:3000/bookings/schedule/create";
 
       const method = editingShowId ? "PUT" : "POST";
 
@@ -167,7 +167,7 @@ export default function ShowSchedulerPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/bookings/schedule/${showId}`, {
+      const response = await fetch(`http://localhost:3000/bookings/schedule/${showId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

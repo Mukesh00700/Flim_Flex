@@ -43,7 +43,7 @@ const SeatSelector = ({ showId, onBookingSuccess }) => {
     setLoading(true);
     setError('');
     
-    axios.get(`http://localhost:3000/api/bookings/seats/${showId}`)
+    axios.get(`http://localhost:3000/bookings/seats/${showId}`)
       .then(res => {
         const data = res.data;
         setShowInfo(data.show);
@@ -109,7 +109,7 @@ const SeatSelector = ({ showId, onBookingSuccess }) => {
 
     try {
       const payload = { showId, seatIds: selected };
-      const res = await axios.post('http://localhost:3000/api/bookings/create', payload, {
+      const res = await axios.post('http://localhost:3000/bookings/create', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
