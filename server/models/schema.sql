@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS halls (
     theater_id INT NOT NULL REFERENCES theaters(id) ON DELETE CASCADE,
     name VARCHAR(80) NOT NULL, -- e.g., "Screen 1", "Audi 2"
     capacity INT, -- optional, can be derived from seats but handy to store
+    default_basic_price NUMERIC(10,2) DEFAULT 200,
+    default_recliner_price NUMERIC(10,2) DEFAULT 350,
+    default_vip_price NUMERIC(10,2) DEFAULT 500,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (theater_id, name)
 );
