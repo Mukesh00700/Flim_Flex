@@ -31,21 +31,21 @@ export const registerCustomerController = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate 6-digit OTP
+    const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     const newUser = await pool.query(
-      `INSERT INTO users (name, email, password, role, verification_token, verification_token_expires, is_verified)
+      `INSERT INTO users (name, email, password, role, verification_otp, verification_otp_expires, is_verified)
        VALUES ($1, $2, $3, 'customer', $4, $5, false)
        RETURNING id, name, email, role, is_verified`,
-      [name, email, hashedPassword, verificationToken, verificationTokenExpires]
+      [name, email, hashedPassword, verificationOTP, otpExpires]
     );
 
-    // Send verification email
+    // Send verification email with OTP
     try {
-      await sendVerificationEmail(email, name, verificationToken);
-      console.log(`✅ Verification email sent to ${email}`);
+      await sendVerificationEmail(email, name, verificationOTP);
+      console.log(`✅ Verification OTP sent to ${email}`);
     } catch (emailError) {
       console.error('❌ Failed to send verification email:', emailError);
       // Continue registration even if email fails
@@ -117,8 +117,9 @@ export const loginController = async (req, res) => {
     // Check if email is verified
     if (!user.is_verified) {
       return res.status(403).json({ 
-        msg: "Please verify your email before logging in. Check your inbox for the verification link.",
-        isVerified: false
+        msg: "Please verify your email before logging in. Check your inbox for the verification OTP.",
+        isVerified: false,
+        email: user.email
       });
     }
 
@@ -196,31 +197,26 @@ export const googleAuth = async (req, res) => {
 };
 
 /**
- * Verify Email
+ * Verify Email with OTP
  */
 export const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.query;
+    const { email, otp } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ msg: "Verification token is required" });
+    if (!email || !otp) {
+      return res.status(400).json({ msg: "Email and OTP are required" });
     }
 
-    // Find user with this verification token
+    // Find user with this email
     const userQuery = await pool.query(
-      "SELECT * FROM users WHERE verification_token = $1",
-      [token]
+      "SELECT * FROM users WHERE email = $1",
+      [email]
     );
 
     const user = userQuery.rows[0];
 
     if (!user) {
-      return res.status(400).json({ msg: "Invalid verification token" });
-    }
-
-    // Check if token is expired
-    if (new Date() > new Date(user.verification_token_expires)) {
-      return res.status(400).json({ msg: "Verification token has expired. Please request a new one." });
+      return res.status(400).json({ msg: "User not found" });
     }
 
     // Check if already verified
@@ -228,9 +224,19 @@ export const verifyEmail = async (req, res) => {
       return res.status(200).json({ msg: "Email is already verified" });
     }
 
+    // Check if OTP matches
+    if (user.verification_otp !== otp) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    // Check if OTP is expired
+    if (new Date() > new Date(user.verification_otp_expires)) {
+      return res.status(400).json({ msg: "OTP has expired. Please request a new one." });
+    }
+
     // Update user as verified
     await pool.query(
-      "UPDATE users SET is_verified = true, verification_token = NULL, verification_token_expires = NULL WHERE id = $1",
+      "UPDATE users SET is_verified = true, verification_otp = NULL, verification_otp_expires = NULL WHERE id = $1",
       [user.id]
     );
 
@@ -245,7 +251,7 @@ export const verifyEmail = async (req, res) => {
 };
 
 /**
- * Resend Verification Email
+ * Resend Verification OTP
  */
 export const resendVerificationEmail = async (req, res) => {
   try {
@@ -266,21 +272,21 @@ export const resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ msg: "Email is already verified" });
     }
 
-    // Generate new verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate new 6-digit OTP
+    const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Update user with new token
+    // Update user with new OTP
     await pool.query(
-      "UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE id = $3",
-      [verificationToken, verificationTokenExpires, user.id]
+      "UPDATE users SET verification_otp = $1, verification_otp_expires = $2 WHERE id = $3",
+      [verificationOTP, otpExpires, user.id]
     );
 
-    // Send verification email
-    await sendVerificationEmail(email, user.name, verificationToken);
+    // Send verification email with OTP
+    await sendVerificationEmail(email, user.name, verificationOTP);
 
     res.status(200).json({ 
-      msg: "Verification email sent successfully! Please check your inbox.",
+      msg: "Verification OTP sent successfully! Please check your inbox.",
       success: true
     });
   } catch (err) {

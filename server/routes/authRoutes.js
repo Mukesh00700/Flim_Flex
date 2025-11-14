@@ -25,8 +25,8 @@ router.post("/register-admin", registerAdminController);
 router.post("/login", loginController);
 router.post("/google", googleAuth);
 
-// Email verification routes
-router.get("/verify-email", verifyEmail);
+// Email verification routes (OTP-based)
+router.post("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationEmail);
 
 // Password reset routes
