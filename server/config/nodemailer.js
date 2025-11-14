@@ -16,8 +16,12 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Email transporter error:', error);
+    console.error('⚠️  Email functionality will NOT work!');
+    console.error('⚠️  Please configure EMAIL_USER and EMAIL_PASSWORD in .env file');
+    console.error('📖 See EMAIL_SETUP_QUICK.md for setup instructions');
   } else {
     console.log('✅ Email server is ready to send messages');
+    console.log(`📧 Configured email: ${process.env.EMAIL_USER || 'NOT SET'}`);
   }
 });
 
@@ -278,10 +282,17 @@ export const sendTicketEmail = async (email, name, ticketHTML, ticketId) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Ticket email sent:', info.messageId);
+    console.log('✅ Verification OTP email sent:', info.messageId);
+    console.log(`📧 Email sent to: ${email}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Error sending ticket email:', error);
+    console.error('❌ Error sending verification email:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      command: error.command
+    });
+    console.error('⚠️ Please check your EMAIL_USER and EMAIL_PASSWORD in .env file');
     throw error;
   }
 };
