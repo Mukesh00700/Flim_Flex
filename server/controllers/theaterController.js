@@ -112,11 +112,12 @@ export const getCities = async (req, res) => {
   }
 };
 
-// Create a new hall for a theater
+// Create a new hall for a theater with customizable seats
 export const createHall = async (req, res) => {
+  const client = await pool.connect();
   try {
     const { theaterId } = req.params;
-    const { name, capacity } = req.body;
+    const { name, capacity, seatConfiguration } = req.body;
 
     if (!name) {
       return res.status(400).json({ msg: 'Hall name is required' });
@@ -124,7 +125,7 @@ export const createHall = async (req, res) => {
 
     // Check if theater exists and user has permission
     if (req.user.role === "admin") {
-      const theaterCheck = await pool.query(
+      const theaterCheck = await client.query(
         "SELECT * FROM theaters WHERE id = $1 AND admin_id = $2",
         [theaterId, req.user.id]
       );
@@ -133,16 +134,88 @@ export const createHall = async (req, res) => {
       }
     }
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    // Create the hall
+    const hallResult = await client.query(
       `INSERT INTO halls (theater_id, name, capacity)
        VALUES ($1, $2, $3) RETURNING *`,
       [theaterId, name, capacity || null]
     );
 
-    res.status(201).json(result.rows[0]);
+    const hall = hallResult.rows[0];
+
+    // Generate seats if seatConfiguration is provided
+    if (seatConfiguration) {
+      const { rows, seatsPerRow, vipRows, reclinerRows } = seatConfiguration;
+
+      if (!rows || !seatsPerRow) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          msg: 'seatConfiguration must include rows (array of row labels) and seatsPerRow (number)' 
+        });
+      }
+
+      const vipRowSet = new Set(vipRows || []);
+      const reclinerRowSet = new Set(reclinerRows || []);
+      const seats = [];
+
+      // Generate seats for each row
+      for (const rowLabel of rows) {
+        let seatType = 'basic';
+        if (vipRowSet.has(rowLabel)) {
+          seatType = 'vip';
+        } else if (reclinerRowSet.has(rowLabel)) {
+          seatType = 'recliner';
+        }
+
+        for (let seatNum = 1; seatNum <= seatsPerRow; seatNum++) {
+          seats.push([hall.id, rowLabel, seatNum, seatType]);
+        }
+      }
+
+      // Bulk insert seats
+      if (seats.length > 0) {
+        const placeholders = seats.map((_, idx) => 
+          `($${idx * 4 + 1}, $${idx * 4 + 2}, $${idx * 4 + 3}, $${idx * 4 + 4})`
+        ).join(', ');
+        
+        const flatParams = seats.flat();
+        await client.query(
+          `INSERT INTO seats (hall_id, row_label, seat_number, seat_type) 
+           VALUES ${placeholders}`,
+          flatParams
+        );
+
+        // Update capacity if not provided
+        if (!capacity) {
+          await client.query(
+            'UPDATE halls SET capacity = $1 WHERE id = $2',
+            [seats.length, hall.id]
+          );
+          hall.capacity = seats.length;
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch seat count
+    const seatCount = await client.query(
+      'SELECT COUNT(*) as seat_count FROM seats WHERE hall_id = $1',
+      [hall.id]
+    );
+
+    res.status(201).json({
+      ...hall,
+      seat_count: parseInt(seatCount.rows[0].seat_count)
+    });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
+  } finally {
+    client.release();
   }
 };
 
