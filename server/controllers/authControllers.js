@@ -58,12 +58,11 @@ export const registerCustomerController = async (req, res) => {
       // Continue registration even if email fails
     }
 
-    const token = generateToken(newUser.rows[0]);
-
+    // DO NOT return token - user must verify email first
     return res.status(201).json({ 
-      token, 
-      user: newUser.rows[0],
-      message: "Registration successful! Please check your email to verify your account."
+      message: "Registration successful! Please check your email to verify your account.",
+      email: email,
+      requiresVerification: true
     });
   } catch (err) {
     console.error(err);
@@ -97,10 +96,11 @@ export const registerAdminController = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Admins are auto-verified since they have the secret key
     const newAdmin = await pool.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role`,
+      `INSERT INTO users (name, email, password, role, is_verified)
+       VALUES ($1, $2, $3, $4, true)
+       RETURNING id, name, email, role, is_verified`,
       [name, email, hashedPassword,'admin']
     );
     console.log('Inserted admin:', newAdmin.rows[0]);
