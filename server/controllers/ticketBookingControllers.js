@@ -144,14 +144,15 @@ export const validateBooking = async (req, res) => {
 // ✅ Create a new booking
 export const createBooking = async (req, res) => {
   const userId = req.user.id; // From auth middleware
+  console.log(req.user);
   const { showId, seatIds, paymentDetails } = req.body;
-
+  console.log(showId,seatIds,paymentDetails);
   if (!showId || !Array.isArray(seatIds) || seatIds.length === 0) {
     return res.status(400).json({ msg: 'Invalid showId or seatIds' });
   }
 
   // Limit booking to 7 seats per person
-  if (seatIds.length > 7) {
+  if (seatIds.length > 10) {
     return res.status(400).json({ msg: 'Cannot book more than 7 seats per booking' });
   }
 

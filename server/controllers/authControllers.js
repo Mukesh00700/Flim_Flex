@@ -21,57 +21,51 @@ const generateToken = (user) => {
 
 export const registerCustomerController = async (req, res) => {
   try {
-    if(!req.body) return res.status(400).json({msg:"All fields are required"});
+    if (!req.body) {
+      return res.status(400).json({ msg: "All fields are required" });
+    }
+
     const { name, email, password } = req.body;
-    if(!name || !email || !password) return res.status(400).json({msg:"Must fill all the fields"});
-    
-    // Validate input using regex
+    if (!name || !email || !password) {
+      return res.status(400).json({ msg: "Must fill all the fields" });
+    }
+
+    // Validate input
     const validation = validateRegistration({ name, email, password });
     if (!validation.isValid) {
       return res.status(400).json({ msg: "Validation failed", errors: validation.errors });
     }
-    
-    // Check if email already exists in users table
-    const existing = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+
+    // Check if email already exists
+    const existing = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "Email already in use" });
     }
 
-    // Check if email exists in pending_users (delete old pending if exists)
-    await pool.query("DELETE FROM pending_users WHERE email=$1", [email]);
-
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate 6-digit OTP
-    const verificationOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Store in pending_users table (NOT in users table yet)
-    await pool.query(
-      `INSERT INTO pending_users (name, email, password, verification_otp, verification_otp_expires)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [name, email, hashedPassword, verificationOTP, otpExpires]
+    // Create user directly in users table
+    const newUser = await pool.query(
+      `INSERT INTO users (name, email, password)
+       VALUES ($1, $2, $3)
+       RETURNING id, name, email`,
+      [name, email, hashedPassword]
     );
+    const token = generateToken(newUser.rows[0]);
 
-    // Send verification email with OTP
-    try {
-      await sendVerificationEmail(email, name, verificationOTP);
-      console.log(`✅ Verification OTP sent to ${email}`);
-    } catch (emailError) {
-      console.error('❌ Failed to send verification email:', emailError);
-      // Continue registration even if email fails
-    }
-
-    return res.status(201).json({ 
-      message: "Please check your email and enter the OTP to complete registration.",
-      email: email,
-      requiresVerification: true
+    return res.status(201).json({
+      token,
+      msg: "Registration successful",
+      user: newUser.rows[0],
+      requiresVerification: false
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error("Registration error:", err);
+    return res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 
 
@@ -135,25 +129,15 @@ export const loginController = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-    // Check if email is verified
-    if (!user.is_verified) {
-      return res.status(403).json({ 
-        msg: "Please verify your email before logging in. Check your inbox for the verification OTP.",
-        isVerified: false,
-        email: user.email
-      });
-    }
-
     const token = generateToken(user);
 
-    res.status(200).json({
+    res.status(201).json({
       token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
-        isVerified: user.is_verified,
       },
     });
   } catch (err) {

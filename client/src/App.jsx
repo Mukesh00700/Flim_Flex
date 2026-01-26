@@ -17,7 +17,10 @@ import CustomerProfilePage from "./pages/CustomerProfilePage";
 import CustomerBookingsPage from "./pages/CustomerBookingsPage";
 import CustomerBookingHistoryPage from "./pages/CustomerBookingHistoryPage";
 import ShowPage from "./pages/ShowPage";
+import ShowSelectorPage from "./pages/ShowSelectorPage";
 import PaymentPage from "./pages/PaymentPage";
+import BookingConfirmationPage from "./pages/BookingConfirmationPage";
+import MyBookingsPage from "./pages/MyBookingsPage";
 
 
 import SeatsPage from "./pages/SeatsPage";
@@ -39,9 +42,12 @@ const App = () => {
         <Route path="/test" element={<TestPage />} />
         <Route path="/movies" element={<MoviesPage />} />
         <Route path="/movies/:movieId" element={<MovieDetail />} />
-        <Route path="/shows/:showId" element={<ShowPage />} />
+        <Route path="/shows/:movieId" element={<ShowSelectorPage />} />
+        <Route path="/seats/:showId" element={<SeatsPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
+        <Route path="/my-bookings" element={<MyBookingsPage />} />
         <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/booking-confirmation" element={<BookingConfirmationPage />} />
 
         {/* 👤 Customer routes */}
           <Route path="/customer" element={<CustomerPage />}>
@@ -50,7 +56,6 @@ const App = () => {
           <Route path="bookings" element={<CustomerBookingsPage />} />
           <Route path="booking-history" element={<CustomerBookingHistoryPage />} />
           </Route>
-          <Route path="/seats" element={<SeatsPage />} />
 
        
         <Route path="*" element={<Navigate to="/" replace />} />

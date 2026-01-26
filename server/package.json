@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "nodemon index.js",
+    "start": "node index.js",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
@@ -23,6 +23,7 @@
     "nodemailer": "^7.0.9",
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
+    "razorpay": "^2.9.1",
     "socket.io": "^4.8.1",
     "streamifier": "^0.1.1"
   },

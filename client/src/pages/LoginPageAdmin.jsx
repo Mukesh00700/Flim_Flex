@@ -18,10 +18,10 @@ const LoginPageAdmin = () => {
         password,
         adminSecretKey
       });
-      if(res.status === 201){
+      if(res.status === 200){
         localStorage.setItem("token", res.data.token);
         console.log(res.data.token);
-        navigate("/adminDashboard")
+        navigate("/admin")
       }
     }catch(error){
       if (error.response) {

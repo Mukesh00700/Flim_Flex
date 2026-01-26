@@ -8,6 +8,7 @@ import bookingsRoutes from "./routes/bookingsRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import ticketBookingRoutes from "./routes/ticketBookingRoutes.js";
 import priceRoutes from "./routes/priceRoutes.js"
+import paymentRoutes from "./routes/paymentRoutes.js"
 import cors from "cors";
 import dotenv from 'dotenv';
 
@@ -82,6 +83,12 @@ try{
     app.use("/prices", priceRoutes);
 }catch(e){
     console.log("Couldn't connect to ticket booking route", e);
+}
+try{
+    console.log("loading payment route");
+    app.use("/payments", paymentRoutes);
+}catch(e){
+    console.log("Couldn't connect to payment route", e);
 }
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
